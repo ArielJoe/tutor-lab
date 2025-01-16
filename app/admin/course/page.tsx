@@ -16,7 +16,7 @@ import {
 } from "../actions/course/actions";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
-import { EllipsisVertical, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trash2, Pencil } from "lucide-react";
@@ -39,12 +39,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface Course {
   id: number;
@@ -99,10 +93,6 @@ export default function CoursePage() {
   }
 
   const totalPages = Math.ceil(courses.length / pageSize);
-  const displayedCourses = courses.slice(
-    currentPage * pageSize,
-    (currentPage + 1) * pageSize
-  );
 
   const filteredCourses = courses.filter((course) =>
     course.course_name?.toLowerCase().includes(courseName.toLowerCase())
@@ -156,7 +146,7 @@ export default function CoursePage() {
                       <Sheet>
                         <SheetTrigger asChild>
                           <Button
-                            className="bg-yellow-300 w-[40px]"
+                            className="bg-yellow-300 w-[35px] h-[35px]"
                             onClick={() => setEditableCourse(course)}
                           >
                             <Pencil className="text-black" />
@@ -216,7 +206,7 @@ export default function CoursePage() {
                               <Input
                                 type="number"
                                 className="col-span-3"
-                                value={editableCourse?.price || ""}
+                                value={editableCourse?.price!}
                                 onChange={(e) =>
                                   setEditableCourse({
                                     ...editableCourse!,
@@ -238,7 +228,7 @@ export default function CoursePage() {
                       </Sheet>
                       <Dialog>
                         <DialogTrigger>
-                          <div className="bg-red-500 h-full rounded-md flex justify-center items-center w-[40px]">
+                          <div className="bg-red-500 rounded-md flex justify-center items-center w-[35px] h-[35px]">
                             <Trash2 className="text-black w-4" />
                           </div>
                         </DialogTrigger>

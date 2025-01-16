@@ -181,7 +181,7 @@ export default function TeacherPage() {
                       <Sheet>
                         <SheetTrigger asChild>
                           <Button
-                            className="bg-yellow-300 w-[40px]"
+                            className="bg-yellow-300 w-[35px] h-[35px]"
                             onClick={() => setEditableTeacher(teacher)}
                           >
                             <Pencil className="text-black" />
@@ -255,7 +255,7 @@ export default function TeacherPage() {
                       </Sheet>
                       <Dialog>
                         <DialogTrigger>
-                          <div className="bg-red-500 h-full rounded-md flex justify-center items-center w-[40px]">
+                          <div className="bg-red-500 rounded-md flex justify-center items-center w-[35px] h-[35px]">
                             <Trash2 className="text-black w-4" />
                           </div>
                         </DialogTrigger>

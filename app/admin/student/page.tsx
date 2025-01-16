@@ -47,7 +47,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ManageCourse } from "./manage_course";
-import ShowSchedule from "./show_study_contract";
 import ShowStudentContracts from "./show_study_contract";
 
 interface Student {
@@ -194,7 +193,7 @@ export default function StudentPage() {
                       <Sheet>
                         <SheetTrigger asChild>
                           <Button
-                            className="bg-yellow-300 w-[40px]"
+                            className="bg-yellow-300 w-[35px] h-[35px]"
                             onClick={() => setEditableStudent(student)}
                           >
                             <Pencil className="text-black" />
@@ -291,7 +290,7 @@ export default function StudentPage() {
                       </Sheet>
                       <Dialog>
                         <DialogTrigger>
-                          <div className="bg-red-500 h-full rounded-md flex justify-center items-center w-[40px]">
+                          <div className="bg-red-500  rounded-md flex justify-center items-center w-[35px] h-[35px]">
                             <Trash2 className="text-black w-4" />
                           </div>
                         </DialogTrigger>
