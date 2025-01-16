@@ -1,0 +1,170 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String  @id @default(cuid())
+  name     String?
+  email    String? @unique
+  password String?
+  role     String
+}
+
+model Student {
+  id                   Int              @id @default(autoincrement())
+  name                 String?
+  birth_date           DateTime?
+  address              String?
+  email                String?
+  phone_number         String?
+  parents_phone_number String?
+  studyContracts       StudyContract[]
+  invoices             Invoice[]
+  selectedCourses      SelectedCourse[]
+}
+
+model Teacher {
+  id           Int                 @id @default(autoincrement())
+  name         String?
+  address      String?
+  email        String?
+  phone_number String?
+  schedules    Schedule[]
+  attendances  TeacherAttendance[]
+}
+
+model Course {
+  id              Int              @id @default(autoincrement())
+  course_name     String?
+  description     String?
+  duration        Int?
+  price           Float?
+  schedules       Schedule[]
+  selectedCourses SelectedCourse[]
+}
+
+model Period {
+  id         Int        @id @default(autoincrement())
+  name       String?
+  start_date DateTime?
+  end_date   DateTime?
+  schedules  Schedule[]
+}
+
+model Schedule {
+  id                 Int                 @id @default(autoincrement())
+  day                DayEnum?
+  start_time         String?
+  duration           Int?
+  period             Period              @relation(fields: [Period_id], references: [id])
+  Period_id          Int
+  teacher            Teacher             @relation(fields: [Teacher_id], references: [id])
+  Teacher_id         Int // Changed from String to Int
+  course             Course              @relation(fields: [Course_id], references: [id])
+  Course_id          Int
+  studyContracts     StudyContract[]
+  studentAttendances StudentAttendance[]
+  TeacherAttendance  TeacherAttendance[]
+
+  @@unique([id, Period_id, Teacher_id, Course_id])
+}
+
+model StudyContract {
+  id                  Int                 @id @default(autoincrement())
+  schedule            Schedule            @relation(fields: [Schedule_id, Schedule_Period_id, Schedule_Teacher_id, Schedule_Course_id], references: [id, Period_id, Teacher_id, Course_id])
+  Schedule_id         Int
+  Schedule_Period_id  Int
+  Schedule_Teacher_id Int // Changed from String to Int
+  Schedule_Course_id  Int
+  student             Student             @relation(fields: [Student_id], references: [id])
+  Student_id          Int // Changed from String to Int
+  studentAttendances  StudentAttendance[]
+
+  @@unique([id, Schedule_Period_id, Schedule_Teacher_id, Schedule_Course_id, Student_id])
+}
+
+model StudentAttendance {
+  id                                Int           @id @default(autoincrement())
+  excused                           Boolean?
+  present                           Boolean?
+  sick                              Boolean?
+  alpha                             Boolean?
+  studyContract                     StudyContract @relation(fields: [StudyContract_Schedule_id, StudyContract_Schedule_Period_id, StudyContract_Schedule_Teacher_id, StudyContract_Schedule_Course_id, StudyContract_Student_id], references: [id, Schedule_Period_id, Schedule_Teacher_id, Schedule_Course_id, Student_id])
+  StudyContract_Schedule_id         Int
+  StudyContract_Schedule_Period_id  Int
+  StudyContract_Schedule_Teacher_id Int // Changed from String to Int
+  StudyContract_Schedule_Course_id  Int
+  StudyContract_Student_id          Int // Changed from String to Int
+  Schedule                          Schedule?     @relation(fields: [scheduleId], references: [id])
+  scheduleId                        Int?
+}
+
+model TeacherAttendance {
+  id                  Int      @id @default(autoincrement())
+  present             Boolean?
+  sick                Boolean?
+  alpha               Boolean?
+  excused             Boolean?
+  schedule            Schedule @relation(fields: [Schedule_id, Schedule_Period_id, Schedule_Teacher_id, Schedule_Course_id], references: [id, Period_id, Teacher_id, Course_id])
+  Schedule_id         Int
+  Schedule_Period_id  Int
+  Schedule_Teacher_id Int // Changed from String to Int
+  Schedule_Course_id  Int
+  Teacher             Teacher? @relation(fields: [teacherId], references: [id])
+  teacherId           Int? // Changed from String to Int
+}
+
+model Invoice {
+  id              Int              @id @default(autoincrement())
+  created_at      DateTime?
+  due_date        DateTime?
+  status          InvoiceStatus?
+  amount          Float?
+  metode          PaymentMethod?
+  student         Student          @relation(fields: [Student_id], references: [id])
+  Student_id      Int // Changed from String to Int
+  selectedCourses SelectedCourse[]
+
+  @@unique([id, Student_id])
+}
+
+model SelectedCourse {
+  id                 Int      @id @default(autoincrement())
+  course             Course   @relation(fields: [Course_id], references: [id])
+  Course_id          Int
+  invoice            Invoice  @relation(fields: [Invoice_id, Invoice_Student_id], references: [id, Student_id])
+  Invoice_id         Int
+  Invoice_Student_id Int // Changed from String to Int
+  Student            Student? @relation(fields: [studentId], references: [id])
+  studentId          Int? // Changed from String to Int
+}
+
+enum DayEnum {
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+  Saturday
+}
+
+enum InvoiceStatus {
+  Lunas
+  Belum_Lunas
+}
+
+enum PaymentMethod {
+  Tunai
+  Transfer
+}
