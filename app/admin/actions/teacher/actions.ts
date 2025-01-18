@@ -1,20 +1,13 @@
 "use server";
 
 import prisma from "@/app/lib/db";
-
-interface Teacher {
-  id: number;
-  name: string | null;
-  address: string | null;
-  email: string | null;
-  phone_number: string | null;
-}
+import { Teacher } from "@/app/lib/interfaces";
 
 interface AddTeacher {
-  name: string | null;
-  address: string | null;
-  email: string | null;
-  phone_number: string | null;
+  name: string;
+  address: string;
+  email: string;
+  phone_number: string;
 }
 
 export async function addTeacher(data: AddTeacher) {
@@ -37,7 +30,7 @@ export async function getTeacherNameById(id: number): Promise<string | null> {
   return teacher?.name || null;
 }
 
-export async function getTeacher(): Promise<Teacher[]> {
+export async function getTeachers(): Promise<Teacher[]> {
   const teachers = await prisma.teacher.findMany();
   return teachers;
 }

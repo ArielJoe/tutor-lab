@@ -11,7 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import {
   deleteStudentById,
-  getStudent,
+  getStudents,
   getStudentsByName,
   updateStudent,
 } from "../actions/student/actions";
@@ -46,18 +46,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ManageCourse } from "./manage_course";
-import ShowStudentContracts from "./show_study_contract";
-
-interface Student {
-  id: number;
-  name: string | null;
-  birth_date: Date | null;
-  address: string | null;
-  email: string | null;
-  phone_number: string | null;
-  parents_phone_number: string | null;
-}
+import { AddCourse } from "./add_course";
+import ShowStudentContracts from "./study_contract";
+import { Student } from "@/app/lib/interfaces";
 
 export default function StudentPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -77,7 +68,7 @@ export default function StudentPage() {
   }, [refresh]);
 
   async function fetchAllStudents() {
-    const students = await getStudent();
+    const students = await getStudents();
     if (students) {
       setStudents(students);
     } else {
@@ -233,9 +224,7 @@ export default function StudentPage() {
                                   const selectedDate = e.target.value;
                                   setEditableStudent({
                                     ...editableStudent!,
-                                    birth_date: selectedDate
-                                      ? new Date(selectedDate)
-                                      : null,
+                                    birth_date: new Date(selectedDate),
                                   });
                                 }}
                               />
@@ -316,14 +305,8 @@ export default function StudentPage() {
                           <EllipsisVertical />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          <ShowStudentContracts
-                            studentId={student.id.toString()}
-                          />
-                          {/* Add this line */}
-                          <DropdownMenuItem className="cursor-pointer">
-                            Billing
-                          </DropdownMenuItem>
-                          <ManageCourse studentId={student.id.toString()} />
+                          <ShowStudentContracts studentId={student.id} />
+                          <AddCourse studentId={student.id} />
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -332,7 +315,7 @@ export default function StudentPage() {
               ))}
             </TableBody>
           </Table>
-          <div className="flex items-center justify-between py-4">
+          <div className="flex justify-center items-center gap-5 py-4">
             <Button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
               disabled={currentPage === 0}

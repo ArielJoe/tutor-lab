@@ -251,26 +251,13 @@ export default function CoursePage() {
                           </Button>
                         </DialogContent>
                       </Dialog>
-                      {/* <DropdownMenu>
-                        <DropdownMenuTrigger>
-                          <EllipsisVertical />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem className="cursor-pointer">
-                            Schedule
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            Billing
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu> */}
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          <div className="flex items-center justify-between py-4">
+          <div className="flex justify-center items-center gap-5 py-4">
             <Button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
               disabled={currentPage === 0}

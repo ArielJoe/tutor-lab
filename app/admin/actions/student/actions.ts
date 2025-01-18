@@ -1,24 +1,15 @@
 "use server";
 
 import prisma from "@/app/lib/db";
-
-interface Student {
-  id: number;
-  name: string | null;
-  birth_date: Date | null;
-  address: string | null;
-  email: string | null;
-  phone_number: string | null;
-  parents_phone_number: string | null;
-}
+import { Student } from "@/app/lib/interfaces";
 
 interface AddStudent {
-  name: string | null;
-  birth_date: Date | null;
-  address: string | null;
-  email: string | null;
-  phone_number: string | null;
-  parents_phone_number: string | null;
+  name: string;
+  birth_date: Date;
+  address: string;
+  email: string;
+  phone_number: string;
+  parents_phone_number: string;
 }
 
 export async function addStudent(data: AddStudent) {
@@ -34,7 +25,7 @@ export async function addStudent(data: AddStudent) {
   });
 }
 
-export async function getStudent(): Promise<Student[]> {
+export async function getStudents(): Promise<Student[]> {
   const students = await prisma.student.findMany();
   return students;
 }
@@ -57,12 +48,6 @@ export async function updateStudent(data: Student) {
 }
 
 export async function deleteStudentById(id: number) {
-  await prisma.selectedCourse.deleteMany({
-    where: {
-      Invoice_Student_id: id,
-    },
-  });
-
   await prisma.studentAttendance.deleteMany({
     where: {
       StudyContract_Student_id: id,

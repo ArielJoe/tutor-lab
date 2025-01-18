@@ -8,6 +8,7 @@ import {
   UserRoundPlus,
   LogOut,
   BookOpen,
+  CalendarDays,
 } from "lucide-react";
 import {
   Sidebar,
@@ -50,6 +51,8 @@ const items = [
     icon: GraduationCap,
   },
   { title: "Course", url: "/admin/course", icon: BookOpen },
+  { title: "Schedule", url: "/admin/schedule", icon: CalendarDays },
+
   {
     title: "Invoice",
     url: "/admin/invoice",

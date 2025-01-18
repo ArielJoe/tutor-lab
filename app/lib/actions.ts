@@ -29,7 +29,7 @@ export const registerCredentials = async (
         name: name,
         email: email,
         password: hashedPassword,
-        role: "admin",
+        role: role,
       },
     });
 

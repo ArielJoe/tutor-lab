@@ -2,11 +2,11 @@
 
 import prisma from "@/app/lib/db";
 
-export async function getSchedulesForTeacher(teacherId: number) {
+export async function getSchedulesByTeacherId(teacherId: number) {
   try {
     const schedules = await prisma.schedule.findMany({
       where: {
-        Teacher_id: teacherId, // Filter by teacher_id
+        Teacher_id: teacherId,
       },
       include: {
         period: true, // Include Period details

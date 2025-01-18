@@ -4,10 +4,10 @@ import prisma from "@/app/lib/db";
 import { Course } from "@/app/lib/interfaces";
 
 interface AddCourse {
-  course_name: string | null;
-  description: string | null;
-  duration: number | null;
-  price: number | null;
+  course_name: string;
+  description: string;
+  duration: number;
+  price: number;
 }
 
 export async function addCourse(data: AddCourse) {
@@ -32,22 +32,7 @@ export async function getCourseNameById(id: number): Promise<string | null> {
 }
 
 export async function getCourses(): Promise<Course[]> {
-  const courses = await prisma.course.findMany({
-    where: {
-      course_name: {
-        not: null,
-      },
-      description: {
-        not: null,
-      },
-      duration: {
-        not: null,
-      },
-      price: {
-        not: null,
-      },
-    },
-  });
+  const courses = await prisma.course.findMany();
 
   return courses as Course[];
 }
@@ -62,13 +47,13 @@ export async function updateCourse(data: any) {
 export async function deleteCourseById(id: number) {
   await prisma.selectedCourse.deleteMany({
     where: {
-      Course_id: id,
+      id: id,
     },
   });
 
   await prisma.schedule.deleteMany({
     where: {
-      Course_id: id,
+      id: id,
     },
   });
 

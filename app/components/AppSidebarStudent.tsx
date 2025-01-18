@@ -28,7 +28,7 @@ const items = [
   },
   {
     title: "Invoice",
-    url: "/admin/invoice",
+    url: "/student/invoice",
     icon: ReceiptText,
   },
 ];

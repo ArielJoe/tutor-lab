@@ -18,7 +18,6 @@ export default async function StudentLayout({
     <div>
       <SidebarProvider>
         <AppSidebarStudent />
-        <SidebarTrigger />
         <main className="w-full">{children}</main>
       </SidebarProvider>
     </div>

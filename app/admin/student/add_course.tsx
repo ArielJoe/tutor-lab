@@ -1,7 +1,10 @@
-"use client";
-
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react";
+import { getCourses } from "../actions/course/actions";
+import { getTeachers } from "../actions/teacher/actions";
+import { Course, Teacher, Schedule } from "@/app/lib/interfaces";
+import { createStudyContract } from "../actions/study_contract/actions";
+import { getSchedulesByTeacherId } from "../actions/schedule/actions";
+import { toast } from "@/hooks/use-toast";
 import {
   Sheet,
   SheetClose,
@@ -13,6 +16,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -20,26 +24,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState, useEffect } from "react";
-import { getCourses } from "../actions/course/actions";
-import { getTeacher } from "../actions/teacher/actions";
-import { Course, Teacher, Student } from "@/app/lib/interfaces";
-import { getStudent } from "../actions/student/actions";
-import { createSchedule } from "../actions/schedule/actions";
-import { createStudyContract } from "../actions/study_contract/actions";
+import { Button } from "@/components/ui/button";
+import { numberToDay } from "@/app/lib/numToDay";
 
-export function ManageCourse({ studentId }: { studentId: string }) {
+export function AddCourse({ studentId }: { studentId: number }) {
   const [open, setOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [selectedTeacher, setSelectedTeacher] = useState("");
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [selectedSchedule, setSelectedSchedule] = useState("");
 
-  const [day, setDay] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [duration, setDuration] = useState<number>(0);
-
-  // Fetch courses
   useEffect(() => {
     const loadCourses = async () => {
       try {
@@ -53,12 +49,10 @@ export function ManageCourse({ studentId }: { studentId: string }) {
     loadCourses();
   }, []);
 
-  // Fetch teachers
   useEffect(() => {
     const loadTeachers = async () => {
       try {
-        const teachersData = await getTeacher();
-
+        const teachersData = await getTeachers();
         const transformedTeachers = teachersData.map((teacher: any) => ({
           ...teacher,
           name: teacher.name || null,
@@ -75,37 +69,51 @@ export function ManageCourse({ studentId }: { studentId: string }) {
     loadTeachers();
   }, []);
 
+  useEffect(() => {
+    if (selectedTeacher) {
+      const loadSchedules = async () => {
+        try {
+          const schedulesData = await getSchedulesByTeacherId(
+            parseInt(selectedTeacher)
+          );
+          setSchedules(schedulesData);
+        } catch (error) {
+          console.error("Failed to load schedules:", error);
+        }
+      };
+
+      loadSchedules();
+    }
+  }, [selectedTeacher]);
+
   const handleSaveSchedule = async () => {
-    const scheduleData = {
-      day: day as string,
-      start_time: startTime,
-      duration: duration,
-      Period_id: 1,
-      Teacher_id: parseInt(selectedTeacher),
-      Course_id: parseInt(selectedCourse),
+    if (!selectedSchedule) {
+      toast({
+        description: "Please select a schedule",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const studyContractData = {
+      scheduleId: parseInt(selectedSchedule),
+      schedulePeriodId:
+        schedules.find((s) => s.id === parseInt(selectedSchedule))?.Period_id ||
+        0,
+      scheduleTeacherId: parseInt(selectedTeacher),
+      scheduleCourseId: parseInt(selectedCourse),
+      studentId: studentId,
     };
 
     try {
-      // Create the schedule
-      const newSchedule: any = await createSchedule(scheduleData);
-      console.log("Schedule saved successfully:", newSchedule);
-
-      // Create a study contract linking the schedule to the selected student
-
-      const studyContractData = {
-        Schedule_id: newSchedule.id,
-        Schedule_Period_id: newSchedule.Period_id,
-        Schedule_Teacher_id: newSchedule.Teacher_id,
-        Schedule_Course_id: newSchedule.Course_id,
-        Student_id: parseInt(studentId),
-      };
-
       await createStudyContract(studyContractData);
-      console.log("Study contract saved successfully");
-
-      setOpen(false); // Close the sheet after saving
+      toast({
+        description: "Study contract added successfully",
+      });
+      console.log("Study contract added successfully");
+      setOpen(false);
     } catch (error) {
-      console.error("Error saving schedule or study contract:", error);
+      console.error("Error saving study contract:", error);
     }
   };
 
@@ -119,7 +127,7 @@ export function ManageCourse({ studentId }: { studentId: string }) {
             setOpen(true);
           }}
         >
-          Manage Course
+          Add Course
         </DropdownMenuItem>
       </SheetTrigger>
       <SheetContent side="bottom">
@@ -176,67 +184,36 @@ export function ManageCourse({ studentId }: { studentId: string }) {
             </div>
           </div>
 
-          {/* New Input for Day */}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="dayInput" className="text-right">
-              Day
-            </Label>
-            <div className="col-span-3">
-              <Select value={day} onValueChange={setDay}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a day" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[
-                    "Monday",
-                    "Tuesday",
-                    "Wednesday",
-                    "Thursday",
-                    "Friday",
-                    "Saturday",
-                  ].map((dayOption) => (
-                    <SelectItem key={dayOption} value={dayOption}>
-                      {dayOption}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Select Schedule */}
+          {selectedTeacher && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="scheduleSelect" className="text-right">
+                Select Schedule
+              </Label>
+              <div className="col-span-3">
+                <Select
+                  value={selectedSchedule}
+                  onValueChange={setSelectedSchedule}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a schedule" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schedules.map((schedule) => (
+                      <SelectItem
+                        key={schedule.id}
+                        value={schedule.id.toString()}
+                      >
+                        {`${numberToDay(schedule.day)} - ${
+                          schedule.start_time
+                        } (${schedule.duration} hours)`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-
-          {/* New Input for Start Time */}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="startTimeInput" className="text-right">
-              Start Time
-            </Label>
-            <div className="col-span-3">
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="border rounded p-2 w-full"
-              />
-            </div>
-          </div>
-
-          {/* New Input for Duration */}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="durationInput" className="text-right">
-              Duration (hours)
-            </Label>
-            <div className="col-span-3">
-              <input
-                type="number"
-                value={duration === 0 ? "" : duration} // Show empty string if duration is 0
-                onChange={(e) => {
-                  const value = e.target.value;
-                  // If the value is an empty string, set duration to 0
-                  setDuration(value === "" ? 0 : Number(value));
-                }}
-                className="border rounded p-2 w-full"
-              />
-            </div>
-          </div>
+          )}
         </div>
         <SheetFooter>
           <Button type="button" onClick={handleSaveSchedule}>

@@ -17,12 +17,20 @@ import {
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { getStudyContractByStudentId } from "../actions/study_contract/actions";
+import {
+  getStudyContractByStudentId,
+  deleteStudyContract,
+} from "../actions/study_contract/actions";
+import { Button } from "@/components/ui/button";
+import { createInvoiceFromStudyContract } from "../actions/invoice/actions";
+import { toast } from "@/hooks/use-toast";
+import { numberToDay } from "@/app/lib/numToDay";
+import { Trash2 } from "lucide-react";
 
 export default function ShowStudentContracts({
   studentId,
 }: {
-  studentId: string;
+  studentId: number;
 }) {
   const [studyContracts, setStudyContracts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -31,13 +39,42 @@ export default function ShowStudentContracts({
     const fetchStudyContracts = async () => {
       const data = await getStudyContractByStudentId(studentId);
       setStudyContracts(data);
-      console.log(data);
     };
 
     if (open) {
       fetchStudyContracts();
     }
   }, [open, studentId]);
+
+  const handleCreateInvoice = async () => {
+    try {
+      await createInvoiceFromStudyContract(studentId);
+      toast({
+        className: "bg-green-900",
+        description: "Invoice created successfully!",
+      });
+    } catch (error) {
+      console.error("Failed to create invoice:", error);
+    }
+  };
+
+  const handleDeleteContract = async (contractId: number) => {
+    try {
+      await deleteStudyContract(contractId);
+      toast({
+        description: "Study contract deleted successfully!",
+      });
+      // Refresh the study contracts list
+      const data = await getStudyContractByStudentId(studentId);
+      setStudyContracts(data);
+    } catch (error) {
+      console.error("Failed to delete study contract:", error);
+      toast({
+        description: "Failed to delete study contract.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -67,24 +104,27 @@ export default function ShowStudentContracts({
                   <TableHead>Duration (hours)</TableHead>
                   <TableHead>Teacher</TableHead>
                   <TableHead>Course</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {studyContracts.map((contract) => (
                   <TableRow key={contract.id}>
                     <TableCell>{contract.Schedule_id}</TableCell>
-                    <TableCell>{contract.schedule?.day || "N/A"}</TableCell>
+                    <TableCell>{numberToDay(contract.schedule.day)}</TableCell>
+                    <TableCell>{contract.schedule?.start_time}</TableCell>
+                    <TableCell>{contract.schedule?.duration}</TableCell>
+                    <TableCell>{contract.schedule?.teacher?.name}</TableCell>
                     <TableCell>
-                      {contract.schedule?.start_time || "N/A"}
+                      {contract.schedule?.course?.course_name}
                     </TableCell>
                     <TableCell>
-                      {contract.schedule?.duration || "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      {contract.schedule?.teacher?.name || "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      {contract.schedule?.course?.course_name || "N/A"}
+                      <Button
+                        className="w-[35px] h-[35px] bg-red-500"
+                        onClick={() => handleDeleteContract(contract.id)}
+                      >
+                        <Trash2 />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -96,6 +136,7 @@ export default function ShowStudentContracts({
             </div>
           )}
         </div>
+        <Button onClick={handleCreateInvoice}>Make Invoice</Button>
       </SheetContent>
     </Sheet>
   );
