@@ -15,9 +15,10 @@ import {
   getTeachersByName,
   updateTeacher,
 } from "../actions/teacher/actions";
+import { resetPassword } from "../actions/user/actions";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, EllipsisVertical } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trash2, Pencil } from "lucide-react";
@@ -35,11 +36,18 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Teacher } from "@/app/lib/interfaces";
 
 export default function TeacherPage() {
@@ -49,6 +57,10 @@ export default function TeacherPage() {
   const [editableTeacher, setEditableTeacher] = useState<Teacher | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [notFound, setNotFound] = useState(false);
+  const [resetPasswordEmail, setResetPasswordEmail] = useState<string | null>(
+    null
+  );
+  const [newPassword, setNewPassword] = useState("");
   const pageSize = 10;
 
   useEffect(() => {
@@ -112,6 +124,25 @@ export default function TeacherPage() {
     }
   }
 
+  async function handleResetPassword() {
+    if (resetPasswordEmail && newPassword) {
+      try {
+        await resetPassword(resetPasswordEmail, newPassword);
+        toast({
+          className: "bg-green-900",
+          description: `Password for ${resetPasswordEmail} reset successfully`,
+        });
+        setResetPasswordEmail(null);
+        setNewPassword("");
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          description: `Failed to reset password for ${resetPasswordEmail}`,
+        });
+      }
+    }
+  }
+
   const totalPages = Math.ceil(teachers.length / pageSize);
   const displayedTeachers = teachers.slice(
     currentPage * pageSize,
@@ -163,16 +194,15 @@ export default function TeacherPage() {
                   <TableCell>{teacher.address}</TableCell>
                   <TableCell>{teacher.email}</TableCell>
                   <TableCell>{teacher.phone_number}</TableCell>
-                  {/* Display courses taught */}
                   <TableCell>
                     <div className="flex gap-3">
                       <Sheet>
                         <SheetTrigger asChild>
                           <Button
-                            className="bg-yellow-300 w-[35px] h-[35px]"
+                            className="bg-yellow-600 hover:bg-yellow-700 w-[35px] h-[35px]"
                             onClick={() => setEditableTeacher(teacher)}
                           >
-                            <Pencil className="text-black" />
+                            <Pencil className="text-white" />
                           </Button>
                         </SheetTrigger>
                         <SheetContent>
@@ -243,8 +273,8 @@ export default function TeacherPage() {
                       </Sheet>
                       <Dialog>
                         <DialogTrigger>
-                          <div className="bg-red-500 rounded-md flex justify-center items-center w-[35px] h-[35px]">
-                            <Trash2 className="text-black w-4" />
+                          <div className="bg-red-600 hover:bg-red-700 rounded-md flex justify-center items-center w-[35px] h-[35px]">
+                            <Trash2 className="text-white w-4" />
                           </div>
                         </DialogTrigger>
                         <DialogContent>
@@ -264,6 +294,57 @@ export default function TeacherPage() {
                           </Button>
                         </DialogContent>
                       </Dialog>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger>
+                          <EllipsisVertical />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <DropdownMenuItem
+                                onSelect={(e) => {
+                                  e.preventDefault();
+                                  setResetPasswordEmail(teacher.email);
+                                }}
+                              >
+                                Reset Password
+                              </DropdownMenuItem>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Reset Password</DialogTitle>
+                                <DialogDescription>
+                                  Enter a new password for {teacher.email}.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <Label
+                                    htmlFor="newPassword"
+                                    className="text-right"
+                                  >
+                                    New Password
+                                  </Label>
+                                  <Input
+                                    id="newPassword"
+                                    type="password"
+                                    className="col-span-3"
+                                    value={newPassword}
+                                    onChange={(e) =>
+                                      setNewPassword(e.target.value)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <Button onClick={handleResetPassword}>
+                                  Reset Password
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </TableRow>

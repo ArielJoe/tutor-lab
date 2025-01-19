@@ -165,10 +165,10 @@ export default function TeacherSchedule() {
                       <Sheet>
                         <SheetTrigger asChild>
                           <Button
-                            className="bg-yellow-300 w-[35px] h-[35px]"
+                            className="bg-yellow-600 hover:bg-yellow-700 w-[35px] h-[35px]"
                             onClick={() => setEditableSchedule(schedule)}
                           >
-                            <Pencil className="text-black" />
+                            <Pencil className="text-white" />
                           </Button>
                         </SheetTrigger>
                         <SheetContent>
@@ -285,8 +285,8 @@ export default function TeacherSchedule() {
                       </Sheet>
                       <Dialog>
                         <DialogTrigger>
-                          <div className="bg-red-500 rounded-md flex justify-center items-center w-[35px] h-[35px]">
-                            <Trash2 className="text-black w-4" />
+                          <div className="bg-red-600 hover:bg-red-700 rounded-md flex justify-center items-center w-[35px] h-[35px]">
+                            <Trash2 className="text-white w-4" />
                           </div>
                         </DialogTrigger>
                         <DialogContent>

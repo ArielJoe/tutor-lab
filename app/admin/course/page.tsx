@@ -42,10 +42,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Course {
   id: number;
-  course_name: string | null;
-  description: string | null;
-  duration: number | null;
-  price: number | null;
+  course_name: string;
+  description: string;
+  duration: number;
+  price: number;
 }
 
 export default function CoursePage() {
@@ -139,17 +139,19 @@ export default function CoursePage() {
                   <TableCell>{course.description}</TableCell>
                   <TableCell>{course.duration || "N/A"}</TableCell>
                   <TableCell>
-                    {course.price ? `Rp${course.price}` : "N/A"}
+                    {course.price
+                      ? `Rp${course.price.toLocaleString("id-ID")}`
+                      : "N/A"}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-3">
                       <Sheet>
                         <SheetTrigger asChild>
                           <Button
-                            className="bg-yellow-300 w-[35px] h-[35px]"
+                            className="bg-yellow-600 hover:bg-yellow-700 w-[35px] h-[35px]"
                             onClick={() => setEditableCourse(course)}
                           >
-                            <Pencil className="text-black" />
+                            <Pencil className="text-white" />
                           </Button>
                         </SheetTrigger>
                         <SheetContent>
@@ -194,9 +196,7 @@ export default function CoursePage() {
                                 onChange={(e) =>
                                   setEditableCourse({
                                     ...editableCourse!,
-                                    duration: e.target.value
-                                      ? parseInt(e.target.value)
-                                      : null,
+                                    duration: parseInt(e.target.value),
                                   })
                                 }
                               />
@@ -206,13 +206,11 @@ export default function CoursePage() {
                               <Input
                                 type="number"
                                 className="col-span-3"
-                                value={editableCourse?.price!}
+                                value={editableCourse?.price || ""}
                                 onChange={(e) =>
                                   setEditableCourse({
                                     ...editableCourse!,
-                                    price: e.target.value
-                                      ? parseFloat(e.target.value)
-                                      : null,
+                                    price: parseFloat(e.target.value),
                                   })
                                 }
                               />
@@ -228,8 +226,8 @@ export default function CoursePage() {
                       </Sheet>
                       <Dialog>
                         <DialogTrigger>
-                          <div className="bg-red-500 rounded-md flex justify-center items-center w-[35px] h-[35px]">
-                            <Trash2 className="text-black w-4" />
+                          <div className="bg-red-600 hover:bg-red-700 rounded-md flex justify-center items-center w-[35px] h-[35px]">
+                            <Trash2 className="text-white w-4" />
                           </div>
                         </DialogTrigger>
                         <DialogContent>

@@ -3,25 +3,10 @@
 import prisma from "@/app/lib/db";
 import { Invoice } from "@/app/lib/interfaces";
 
-export async function createInvoiceFromStudyContract(studentId: number) {
-  const studyContracts = await prisma.studyContract.findMany({
-    where: { id: studentId },
-    include: {
-      schedule: {
-        include: {
-          course: true, // Include the course to access its price
-        },
-      },
-    },
-  });
-
-  let totalAmount = 0;
-  studyContracts.forEach((contract) => {
-    if (contract.schedule?.course) {
-      totalAmount += contract.schedule.course.price;
-    }
-  });
-
+export async function createInvoiceFromStudyContract(
+  studentId: number,
+  totalAmount: number
+) {
   const invoice = await prisma.invoice.create({
     data: {
       created_at: new Date(),

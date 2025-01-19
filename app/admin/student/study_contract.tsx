@@ -34,11 +34,13 @@ export default function ShowStudentContracts({
 }) {
   const [studyContracts, setStudyContracts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [totalAmount, setTotalAmount] = useState(0);
 
   useEffect(() => {
     const fetchStudyContracts = async () => {
       const data = await getStudyContractByStudentId(studentId);
       setStudyContracts(data);
+      calculateTotalAmount(data);
     };
 
     if (open) {
@@ -46,9 +48,19 @@ export default function ShowStudentContracts({
     }
   }, [open, studentId]);
 
+  const calculateTotalAmount = (contracts: any[]) => {
+    let total = 0;
+    contracts.forEach((contract) => {
+      if (contract.schedule?.course?.price) {
+        total += contract.schedule.course.price;
+      }
+    });
+    setTotalAmount(total);
+  };
+
   const handleCreateInvoice = async () => {
     try {
-      await createInvoiceFromStudyContract(studentId);
+      await createInvoiceFromStudyContract(studentId, totalAmount);
       toast({
         className: "bg-green-900",
         description: "Invoice created successfully!",
@@ -67,6 +79,7 @@ export default function ShowStudentContracts({
       // Refresh the study contracts list
       const data = await getStudyContractByStudentId(studentId);
       setStudyContracts(data);
+      calculateTotalAmount(data);
     } catch (error) {
       console.error("Failed to delete study contract:", error);
       toast({
@@ -104,6 +117,7 @@ export default function ShowStudentContracts({
                   <TableHead>Duration (hours)</TableHead>
                   <TableHead>Teacher</TableHead>
                   <TableHead>Course</TableHead>
+                  <TableHead>Price</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -119,11 +133,18 @@ export default function ShowStudentContracts({
                       {contract.schedule?.course?.course_name}
                     </TableCell>
                     <TableCell>
+                      {contract.schedule?.course?.price
+                        ? `Rp${contract.schedule.course.price.toLocaleString(
+                            "id-ID"
+                          )}`
+                        : "N/A"}
+                    </TableCell>
+                    <TableCell>
                       <Button
-                        className="w-[35px] h-[35px] bg-red-500"
+                        className="w-[35px] h-[35px] bg-red-600 hover:bg-red-700"
                         onClick={() => handleDeleteContract(contract.id)}
                       >
-                        <Trash2 />
+                        <Trash2 className="text-white" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -136,7 +157,10 @@ export default function ShowStudentContracts({
             </div>
           )}
         </div>
-        <Button onClick={handleCreateInvoice}>Make Invoice</Button>
+        <div className="flex justify-between items-center">
+          <div>Total Amount: Rp{totalAmount.toLocaleString("id-ID")}</div>
+          <Button onClick={handleCreateInvoice}>Make Invoice</Button>
+        </div>
       </SheetContent>
     </Sheet>
   );

@@ -15,6 +15,7 @@ import {
   getStudentsByName,
   updateStudent,
 } from "../actions/student/actions";
+import { resetPassword } from "../actions/user/actions";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
 import { EllipsisVertical, Search } from "lucide-react";
@@ -35,6 +36,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -57,6 +59,10 @@ export default function StudentPage() {
   const [editableStudent, setEditableStudent] = useState<Student | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [notFound, setNotFound] = useState(false);
+  const [resetPasswordEmail, setResetPasswordEmail] = useState<string | null>(
+    null
+  );
+  const [newPassword, setNewPassword] = useState("");
   const pageSize = 10;
 
   useEffect(() => {
@@ -117,6 +123,25 @@ export default function StudentPage() {
         className: "bg-green-900",
         description: `${editableStudent.name} updated successfully`,
       });
+    }
+  }
+
+  async function handleResetPassword() {
+    if (resetPasswordEmail && newPassword) {
+      try {
+        await resetPassword(resetPasswordEmail, newPassword);
+        toast({
+          className: "bg-green-900",
+          description: `Password for ${resetPasswordEmail} reset successfully`,
+        });
+        setResetPasswordEmail(null);
+        setNewPassword("");
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          description: `Failed to reset password for ${resetPasswordEmail}`,
+        });
+      }
     }
   }
 
@@ -184,10 +209,10 @@ export default function StudentPage() {
                       <Sheet>
                         <SheetTrigger asChild>
                           <Button
-                            className="bg-yellow-300 w-[35px] h-[35px]"
+                            className="bg-yellow-600 hover:bg-yellow-700 w-[35px] h-[35px]"
                             onClick={() => setEditableStudent(student)}
                           >
-                            <Pencil className="text-black" />
+                            <Pencil className="text-white" />
                           </Button>
                         </SheetTrigger>
                         <SheetContent>
@@ -279,8 +304,8 @@ export default function StudentPage() {
                       </Sheet>
                       <Dialog>
                         <DialogTrigger>
-                          <div className="bg-red-500  rounded-md flex justify-center items-center w-[35px] h-[35px]">
-                            <Trash2 className="text-black w-4" />
+                          <div className="bg-red-600 hover:bg-red-700 rounded-md flex justify-center items-center w-[35px] h-[35px]">
+                            <Trash2 className="text-white w-4" />
                           </div>
                         </DialogTrigger>
                         <DialogContent>
@@ -307,6 +332,52 @@ export default function StudentPage() {
                         <DropdownMenuContent>
                           <ShowStudentContracts studentId={student.id} />
                           <AddCourse studentId={student.id} />
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <DropdownMenuItem
+                                onSelect={(e) => {
+                                  e.preventDefault();
+                                  setResetPasswordEmail(student.email);
+                                }}
+                              >
+                                Reset Password
+                              </DropdownMenuItem>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle className="text-2xl">
+                                  Reset Password
+                                </DialogTitle>
+                                <DialogDescription>
+                                  Enter a new password for {student.email}.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <Label
+                                    htmlFor="newPassword"
+                                    className="text-right"
+                                  >
+                                    New Password
+                                  </Label>
+                                  <Input
+                                    id="newPassword"
+                                    type="password"
+                                    className="col-span-3"
+                                    value={newPassword}
+                                    onChange={(e) =>
+                                      setNewPassword(e.target.value)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <Button onClick={handleResetPassword}>
+                                  Reset Password
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

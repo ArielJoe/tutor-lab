@@ -14,7 +14,7 @@ export default function Navbar({ title }: NavbarProps) {
         <SidebarTrigger className="bg-primary text-secondary" />
         <h1 className="text-xl">{title}</h1>
       </div>
-      <Button
+      {/* <Button
         onClick={async () => {
           await registerCredentials(
             "Admin",
@@ -29,7 +29,7 @@ export default function Navbar({ title }: NavbarProps) {
         }}
       >
         Adm
-      </Button>
+      </Button> */}
     </div>
   );
 }
