@@ -21,9 +21,16 @@ export async function getSchedulesByTeacherId(
   }
 }
 
-export async function createSchedule(data: any) {
+export async function createSchedule(data: Schedule) {
   const schedule = await prisma.schedule.create({
-    data: data,
+    data: {
+      day: data.day,
+      start_time: data.start_time,
+      duration: data.duration,
+      Teacher_id: data.Teacher_id,
+      Course_id: data.Course_id,
+      Period_id: data.Period_id, // Connect to an existing period
+    },
   });
   return schedule;
 }

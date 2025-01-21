@@ -41,8 +41,3 @@ export async function createStudyContract(data: {
     },
   });
 }
-
-export async function test() {
-  const data = await prisma.$queryRaw`SELECT * FROM Student`;
-  return data;
-}

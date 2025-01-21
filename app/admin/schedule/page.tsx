@@ -12,12 +12,13 @@ import { useEffect, useState } from "react";
 import {
   deleteScheduleById,
   updateSchedule,
+  createSchedule,
 } from "../actions/schedule/actions";
 import { getSchedulesTeacherCourse } from "../actions/schedule/actions";
 import { getTeachers } from "../actions/teacher/actions";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trash2, Pencil } from "lucide-react";
@@ -35,6 +36,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -63,7 +65,25 @@ export default function TeacherSchedule() {
     null
   );
   const [currentPage, setCurrentPage] = useState(0);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newSchedule, setNewSchedule] = useState<Partial<Schedule>>({
+    day: 1,
+    start_time: "",
+    duration: 0,
+    Teacher_id: undefined,
+    Course_id: undefined,
+    Period_id: 1, // Ensure Period_id is always 1
+  });
   const pageSize = 10;
+
+  const daysOfWeek = [
+    { id: 1, name: "Monday" },
+    { id: 2, name: "Tuesday" },
+    { id: 3, name: "Wednesday" },
+    { id: 4, name: "Thursday" },
+    { id: 5, name: "Friday" },
+    { id: 6, name: "Saturday" },
+  ];
 
   useEffect(() => {
     fetchAllSchedules();
@@ -100,7 +120,11 @@ export default function TeacherSchedule() {
 
   async function handleUpdate() {
     if (editableSchedule) {
-      await updateSchedule(editableSchedule);
+      const updatedSchedule = {
+        ...editableSchedule,
+        Period_id: 1, // Ensure Period_id is always 1
+      };
+      await updateSchedule(updatedSchedule);
       setRefresh((prev) => !prev);
       toast({
         className: "bg-green-900",
@@ -109,9 +133,43 @@ export default function TeacherSchedule() {
     }
   }
 
+  async function handleAddSchedule() {
+    if (
+      newSchedule.day &&
+      newSchedule.start_time &&
+      newSchedule.duration &&
+      newSchedule.Teacher_id &&
+      newSchedule.Course_id
+    ) {
+      const scheduleToCreate = {
+        ...newSchedule,
+        Period_id: 1, // Ensure Period_id is always 1
+      };
+      await createSchedule(scheduleToCreate as Schedule);
+      setRefresh((prev) => !prev);
+      setIsAddDialogOpen(false);
+      toast({
+        className: "bg-green-900",
+        description: `Schedule added successfully`,
+      });
+      setNewSchedule({
+        day: 1,
+        start_time: "",
+        duration: 0,
+        Teacher_id: undefined,
+        Course_id: undefined,
+        Period_id: 1, // Reset Period_id to 1 for the next schedule
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        description: `Please fill all fields`,
+      });
+    }
+  }
+
   const totalPages = Math.ceil(schedules.length / pageSize);
 
-  // Filter schedules by day (Monday to Saturday)
   const filteredSchedules = schedules.filter((schedule) => {
     const dayName = numberToDay(schedule.day).toLowerCase();
     return dayName.includes(searchTerm.toLowerCase());
@@ -178,16 +236,29 @@ export default function TeacherSchedule() {
                           <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Day</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableSchedule?.day || ""}
-                                onChange={(e) =>
+                              <Select
+                                value={editableSchedule?.day?.toString() || ""}
+                                onValueChange={(value) =>
                                   setEditableSchedule({
                                     ...editableSchedule!,
-                                    day: parseInt(e.target.value),
+                                    day: parseInt(value),
                                   })
                                 }
-                              />
+                              >
+                                <SelectTrigger className="col-span-3">
+                                  <SelectValue placeholder="Select Day" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {daysOfWeek.map((day) => (
+                                    <SelectItem
+                                      key={day.id}
+                                      value={day.id.toString()}
+                                    >
+                                      {day.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Start Time</Label>
@@ -337,6 +408,132 @@ export default function TeacherSchedule() {
       ) : (
         <div className="p-5 text-center">Loading Schedules Data...</div>
       )}
+
+      {/* Add Schedule Button */}
+      <div className="fixed bottom-5 right-5">
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-full w-12 h-12">
+              <Plus className="w-6 h-6" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Add New Schedule</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Day</Label>
+                <Select
+                  value={newSchedule.day?.toString() || ""}
+                  onValueChange={(value) =>
+                    setNewSchedule({
+                      ...newSchedule,
+                      day: parseInt(value),
+                    })
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select Day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {daysOfWeek.map((day) => (
+                      <SelectItem key={day.id} value={day.id.toString()}>
+                        {day.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Start Time</Label>
+                <Input
+                  className="col-span-3"
+                  value={newSchedule.start_time || ""}
+                  onChange={(e) =>
+                    setNewSchedule({
+                      ...newSchedule,
+                      start_time: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Duration (hrs)</Label>
+                <Input
+                  type="number"
+                  className="col-span-3"
+                  value={newSchedule.duration || ""}
+                  onChange={(e) =>
+                    setNewSchedule({
+                      ...newSchedule,
+                      duration: parseInt(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Teacher</Label>
+                <Select
+                  value={newSchedule.Teacher_id?.toString() || ""}
+                  onValueChange={(value) =>
+                    setNewSchedule({
+                      ...newSchedule,
+                      Teacher_id: parseInt(value),
+                    })
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select Teacher" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teachers.map((teacher) => (
+                      <SelectItem
+                        key={teacher.id}
+                        value={teacher.id.toString()}
+                      >
+                        {teacher.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Course</Label>
+                <Select
+                  value={newSchedule.Course_id?.toString() || ""}
+                  onValueChange={(value) =>
+                    setNewSchedule({
+                      ...newSchedule,
+                      Course_id: parseInt(value),
+                    })
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select Course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id.toString()}>
+                        {course.course_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleAddSchedule}>Add Schedule</Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import {
   ChartConfig,
@@ -48,6 +48,8 @@ export default function Invoice() {
   const [currentPage, setCurrentPage] = useState(0);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null); // State to store selected invoice details
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false); // State to control details dialog visibility
   const pageSize = 10; // Number of invoices per page
 
   useEffect(() => {
@@ -55,6 +57,7 @@ export default function Invoice() {
       const data = await getInvoices();
       setInvoices(data);
       calculateTotals(data);
+      updateChartData(data);
     };
 
     fetchInvoices();
@@ -82,12 +85,16 @@ export default function Invoice() {
         month: "long",
       });
       if (!acc[month]) {
-        acc[month] = { month, paid: 0, pending: 0 };
+        acc[month] = { month, paid: 0, pending: 0, overdue: 0 };
       }
       if (invoice.status === "Paid") {
         acc[month].paid += invoice.amount;
       } else if (invoice.status === "Pending") {
-        acc[month].pending += invoice.amount;
+        if (new Date(invoice.due_date) < new Date()) {
+          acc[month].overdue += invoice.amount; // Overdue
+        } else {
+          acc[month].pending += invoice.amount; // Pending
+        }
       }
       return acc;
     }, {});
@@ -180,34 +187,55 @@ export default function Invoice() {
     }
   };
 
+  const handleShowDetails = (invoice: any) => {
+    setSelectedInvoice(invoice); // Set the selected invoice
+    setIsDetailsOpen(true); // Open the details dialog
+  };
+
   const chartConfig = {
     paid: {
       label: "Paid",
-      color: "hsl(var(--chart-1))",
+      color: "#22c55e",
     },
     pending: {
       label: "Pending",
-      color: "hsl(var(--chart-2))",
+      color: "#eab308",
+    },
+    overdue: {
+      label: "Overdue",
+      color: "#ef4444",
     },
   } satisfies ChartConfig;
 
   // Custom Legend Component
   const ChartLegend = () => (
     <div className="flex justify-center gap-4 mt-4">
+      {/* Paid */}
       <div className="flex items-center gap-2">
-        <div
-          className="w-4 h-4 rounded-full"
-          style={{ backgroundColor: "hsl(var(--chart-1))" }}
-        />
+        <div className="w-4 h-4 rounded-full bg-green-500" />
         <span className="text-sm">Paid: Rp{formatRevenue(totalPaid)}</span>
       </div>
+      {/* Pending */}
       <div className="flex items-center gap-2">
-        <div
-          className="w-4 h-4 rounded-full"
-          style={{ backgroundColor: "hsl(var(--chart-2))" }}
-        />
+        <div className="w-4 h-4 rounded-full bg-yellow-500" />
         <span className="text-sm">
           Pending: Rp{formatRevenue(totalPending)}
+        </span>
+      </div>
+      {/* Overdue */}
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 rounded-full bg-red-500" />
+        <span className="text-sm">
+          Overdue: Rp
+          {formatRevenue(
+            invoices
+              .filter(
+                (invoice) =>
+                  invoice.status === "Pending" &&
+                  new Date(invoice.due_date) < new Date()
+              )
+              .reduce((sum, invoice) => sum + invoice.amount, 0)
+          )}
         </span>
       </div>
     </div>
@@ -269,7 +297,7 @@ export default function Invoice() {
               </TableHeader>
               <TableBody>
                 {displayedInvoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
+                  <TableRow key={`${invoice.id}-${invoice.created_at}`}>
                     <TableCell>{invoice.id}</TableCell>
                     <TableCell>{invoice.student?.name}</TableCell>
                     <TableCell>
@@ -283,15 +311,27 @@ export default function Invoice() {
                     <TableCell>
                       <span
                         className={`inline-block px-3 py-1 rounded-full ${
-                          invoice.status === "Pending"
-                            ? "bg-yellow-200 text-yellow-800"
-                            : "bg-green-200 text-green-800"
+                          invoice.status === "Pending" &&
+                          new Date(invoice.due_date) < new Date()
+                            ? "bg-red-200 text-red-800" // Overdue
+                            : invoice.status === "Pending"
+                            ? "bg-yellow-200 text-yellow-800" // Pending
+                            : "bg-green-200 text-green-800" // Paid
                         }`}
                       >
-                        {invoice.status}
+                        {invoice.status === "Pending" &&
+                        new Date(invoice.due_date) < new Date()
+                          ? "Overdue"
+                          : invoice.status}
                       </span>
                     </TableCell>
                     <TableCell className="flex gap-2">
+                      <Button
+                        className="bg-blue-500 hover:bg-blue-600 text-white w-[35px] h-[35px]"
+                        onClick={() => handleShowDetails(invoice)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
                       {invoice.status === "Pending" ? (
                         <Button
                           onClick={() => handleConfirmPayment(invoice.id)}
@@ -359,7 +399,9 @@ export default function Invoice() {
         <Dialog open={isChartOpen} onOpenChange={setIsChartOpen}>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Revenue Chart - Paid vs Pending</DialogTitle>
+              <DialogTitle>
+                Revenue Chart - Paid, Pending, and Overdue
+              </DialogTitle>
               <DialogDescription>Monthly Revenue Overview</DialogDescription>
             </DialogHeader>
             <ChartContainer config={chartConfig}>
@@ -383,17 +425,27 @@ export default function Invoice() {
                   cursor={false}
                   content={<ChartTooltipContent />}
                 />
+                {/* Paid Line */}
                 <Line
                   dataKey="paid"
                   type="monotone"
-                  stroke="var(--color-paid)"
+                  stroke={chartConfig.paid.color} // Use color from chartConfig
                   strokeWidth={2}
                   dot={false}
                 />
+                {/* Pending Line */}
                 <Line
                   dataKey="pending"
                   type="monotone"
-                  stroke="var(--color-pending)"
+                  stroke={chartConfig.pending.color} // Use color from chartConfig
+                  strokeWidth={2}
+                  dot={false}
+                />
+                {/* Overdue Line */}
+                <Line
+                  dataKey="overdue"
+                  type="monotone"
+                  stroke={chartConfig.overdue.color} // Use color from chartConfig
                   strokeWidth={2}
                   dot={false}
                 />
@@ -401,6 +453,47 @@ export default function Invoice() {
             </ChartContainer>
             {/* Custom Legend with Colored Circles */}
             <ChartLegend />
+          </DialogContent>
+        </Dialog>
+
+        {/* Transaction Details Dialog */}
+        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Transaction Details</DialogTitle>
+              <DialogDescription>
+                Details for Invoice #{selectedInvoice?.id}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedInvoice && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium">Student:</h3>
+                  <p>{selectedInvoice.student?.name}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium">Amount:</h3>
+                  <p>Rp{formatRevenue(selectedInvoice.amount)}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium">Status:</h3>
+                  <p>{selectedInvoice.status}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium">Courses:</h3>
+                  <ul className="list-disc pl-5">
+                    {selectedInvoice.selectedCourses?.map(
+                      (selectedCourse: any, index: number) => (
+                        <li key={index}>
+                          {selectedCourse.course.course_name} (Rp
+                          {formatRevenue(selectedCourse.course.price)})
+                        </li>
+                      )
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

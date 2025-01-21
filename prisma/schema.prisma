@@ -22,16 +22,15 @@ model User {
 }
 
 model Student {
-  id                   Int              @id @default(autoincrement())
+  id                   Int             @id @default(autoincrement())
   name                 String
   birth_date           DateTime
   address              String
-  email                String           @unique
+  email                String          @unique
   phone_number         String
   parents_phone_number String
   studyContracts       StudyContract[]
   invoices             Invoice[]
-  selectedCourses      SelectedCourse[]
 }
 
 model Teacher {
@@ -84,10 +83,10 @@ model StudyContract {
   id                  Int      @id @default(autoincrement())
   schedule            Schedule @relation(fields: [Schedule_id], references: [id])
   Schedule_id         Int
+  Student_id          Int
   Schedule_Period_id  Int
   Schedule_Teacher_id Int
   Schedule_Course_id  Int
-  Student_id          Int
 
   Student           Student[]
   StudentAttendance StudentAttendance[]
@@ -98,10 +97,7 @@ model StudyContract {
 model StudentAttendance {
   id                                Int           @id @default(autoincrement())
   date_time                         DateTime
-  excused                           Boolean
-  present                           Boolean
-  sick                              Boolean
-  alpha                             Boolean
+  status                            Int
   studyContract                     StudyContract @relation(fields: [StudyContract_Schedule_id, StudyContract_Schedule_Period_id, StudyContract_Schedule_Teacher_id, StudyContract_Schedule_Course_id, StudyContract_Student_id], references: [Schedule_id, Schedule_Period_id, Schedule_Teacher_id, Schedule_Course_id, Student_id])
   StudyContract_Schedule_id         Int
   StudyContract_Schedule_Period_id  Int
@@ -115,10 +111,7 @@ model StudentAttendance {
 model TeacherAttendance {
   id                  Int      @id @default(autoincrement())
   date_time           DateTime
-  present             Boolean
-  sick                Boolean
-  alpha               Boolean
-  excused             Boolean
+  Status              Int
   schedule            Schedule @relation(fields: [Schedule_id, Schedule_Period_id, Schedule_Teacher_id, Schedule_Course_id], references: [id, Period_id, Teacher_id, Course_id])
   Schedule_id         Int
   Schedule_Period_id  Int
@@ -143,14 +136,11 @@ model Invoice {
 }
 
 model SelectedCourse {
-  id                 Int     @id @default(autoincrement())
-  course             Course  @relation(fields: [Course_id], references: [id])
-  Course_id          Int
-  invoice            Invoice @relation(fields: [Invoice_id, Invoice_Student_id], references: [id, Student_id])
-  Invoice_id         Int
-  Invoice_Student_id Int
-  student            Student @relation(fields: [Student_id], references: [id])
-  Student_id         Int
+  id         Int     @id @default(autoincrement())
+  course     Course  @relation(fields: [Course_id], references: [id])
+  Course_id  Int
+  invoice    Invoice @relation(fields: [Invoice_id], references: [id])
+  Invoice_id Int
 }
 
 model Log {

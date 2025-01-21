@@ -135,7 +135,7 @@ export default function Dashboard() {
     },
   } satisfies ChartConfig;
 
-  // Data for the pie chart (Pending and Paid Invoices)
+  // Data for the pie chart (Pending, Paid, and Overdue Invoices)
   const pendingPaidChartData = [
     {
       category: "Pending",
@@ -146,6 +146,16 @@ export default function Dashboard() {
       category: "Paid",
       count: invoices.filter((invoice) => invoice.status === "Paid").length,
       fill: "hsl(var(--chart-4))", // Color for Paid
+    },
+    {
+      category: "Overdue",
+      count: invoices.filter(
+        (invoice) =>
+          invoice.status === "Pending" &&
+          new Date(invoice.due_date).setHours(0, 0, 0, 0) <
+            new Date().setHours(0, 0, 0, 0)
+      ).length,
+      fill: "hsl(var(--chart-5))", // Color for Overdue
     },
   ];
 
@@ -160,6 +170,9 @@ export default function Dashboard() {
     },
     Paid: {
       label: "Paid",
+    },
+    Overdue: {
+      label: "Overdue",
     },
   } satisfies ChartConfig;
 
@@ -299,7 +312,7 @@ export default function Dashboard() {
             </CardFooter>
           </Card>
 
-          {/* Pie Chart Card (Pending and Paid Invoices) */}
+          {/* Pie Chart Card (Pending, Paid, and Overdue Invoices) */}
           <Card className="flex-1 flex flex-col">
             <CardHeader className="pb-0">
               <CardTitle className="text-2xl text-left">
@@ -367,7 +380,7 @@ export default function Dashboard() {
                   </Pie>
                 </PieChart>
               </ChartContainer>
-              {/* Custom Legend for Pending and Paid Invoices */}
+              {/* Custom Legend for Pending, Paid, and Overdue Invoices */}
               <div className="flex justify-center gap-4 mt-4">
                 {pendingPaidChartData.map((entry, index) => (
                   <div key={index} className="flex items-center gap-2">
@@ -384,7 +397,7 @@ export default function Dashboard() {
             </CardContent>
             <CardFooter className="flex-col gap-2 text-sm mt-4">
               <div className="leading-none text-muted-foreground">
-                Showing total pending and paid invoices
+                Showing total pending, paid, and overdue invoices
               </div>
             </CardFooter>
           </Card>
@@ -433,7 +446,7 @@ export default function Dashboard() {
       </div>
 
       {/* Logs Section */}
-      <div className="px-5">
+      <div className="px-5 pb-5">
         <Card>
           <CardHeader className="">
             <CardTitle className="text-2xl">Activity Logs</CardTitle>

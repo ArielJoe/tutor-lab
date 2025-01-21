@@ -9,7 +9,7 @@ import { useState } from "react";
 import { addStudent } from "../actions/student/actions";
 import { addTeacher } from "../actions/teacher/actions";
 import { toast } from "@/hooks/use-toast";
-import { registerCredentials } from "@/app/lib/actions";
+import { registerCredentials } from "@/app/lib/loginAndRegister";
 
 interface StudentData {
   name: string;

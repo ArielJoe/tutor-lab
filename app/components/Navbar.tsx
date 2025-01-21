@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { registerCredentials } from "../lib/actions";
+import { registerCredentials } from "../lib/loginAndRegister";
 import { toast } from "@/hooks/use-toast";
 
 interface NavbarProps {

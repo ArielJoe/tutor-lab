@@ -13,10 +13,11 @@ import {
   deleteCourseById,
   getCourses,
   updateCourse,
+  addCourse,
 } from "../actions/course/actions";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trash2, Pencil } from "lucide-react";
@@ -34,6 +35,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -54,6 +56,13 @@ export default function CoursePage() {
   const [refresh, setRefresh] = useState(false);
   const [editableCourse, setEditableCourse] = useState<Course | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newCourse, setNewCourse] = useState<Partial<Course>>({
+    course_name: "",
+    description: "",
+    duration: 0,
+    price: 0,
+  });
   const pageSize = 10;
 
   useEffect(() => {
@@ -88,6 +97,34 @@ export default function CoursePage() {
       toast({
         className: "bg-green-900",
         description: `${editableCourse.course_name} updated successfully`,
+      });
+    }
+  }
+
+  async function handleAddCourse() {
+    if (
+      newCourse.course_name &&
+      newCourse.description &&
+      newCourse.duration &&
+      newCourse.price
+    ) {
+      await addCourse(newCourse as Course);
+      setRefresh((prev) => !prev);
+      setIsAddDialogOpen(false);
+      toast({
+        className: "bg-green-900",
+        description: `Course added successfully`,
+      });
+      setNewCourse({
+        course_name: "",
+        description: "",
+        duration: 0,
+        price: 0,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        description: `Please fill all fields`,
       });
     }
   }
@@ -280,6 +317,87 @@ export default function CoursePage() {
       ) : (
         <div className="p-5 text-center">Loading Courses Data...</div>
       )}
+
+      {/* Add Course Button */}
+      <div className="fixed bottom-5 right-5">
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-full w-12 h-12">
+              <Plus className="w-6 h-6" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Add New Course</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Name</Label>
+                <Input
+                  className="col-span-3"
+                  value={newCourse.course_name || ""}
+                  onChange={(e) =>
+                    setNewCourse({
+                      ...newCourse,
+                      course_name: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Description</Label>
+                <Input
+                  className="col-span-3"
+                  value={newCourse.description || ""}
+                  onChange={(e) =>
+                    setNewCourse({
+                      ...newCourse,
+                      description: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Duration (hrs)</Label>
+                <Input
+                  type="number"
+                  className="col-span-3"
+                  value={newCourse.duration || ""}
+                  onChange={(e) =>
+                    setNewCourse({
+                      ...newCourse,
+                      duration: parseInt(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Price</Label>
+                <Input
+                  type="number"
+                  className="col-span-3"
+                  value={newCourse.price || ""}
+                  onChange={(e) =>
+                    setNewCourse({
+                      ...newCourse,
+                      price: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleAddCourse}>Add Course</Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

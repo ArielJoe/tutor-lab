@@ -70,10 +70,7 @@ export interface StudyContract {
 export interface StudentAttendance {
   id: number;
   date_time: Date;
-  excused: boolean;
-  present: boolean;
-  sick: boolean;
-  alpha: boolean;
+  status: number;
   Study_Contract_Schedule_id: number;
   Study_Contract_Schedule_Period_id: number;
   Study_Contract_Schedule_Teacher_id: number;
@@ -85,10 +82,7 @@ export interface StudentAttendance {
 export interface TeacherAttendance {
   id: number;
   date_time: Date;
-  present: boolean;
-  sick: boolean;
-  alpha: boolean;
-  excused: boolean;
+  status: number;
   Schedule_id: number;
   Schedule_Period_id: number;
   Schedule_Teacher_id: number;
@@ -110,5 +104,4 @@ export interface SelectedCourse {
   id: number;
   Course_id: number;
   Invoice_id: number;
-  Student_id: number;
 }
