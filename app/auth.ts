@@ -3,8 +3,18 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "./lib/db";
 import Credentials from "next-auth/providers/credentials";
 import { loginSchema } from "./lib/zod";
-import { compareSync } from "bcrypt";
 import { Adapter } from "@auth/core/adapters";
+import { createHash } from "crypto";
+
+// Function to hash a password using SHA256
+function hashSHA256(password: string): string {
+  return createHash("sha256").update(password).digest("hex");
+}
+
+// Function to compare a plain password with a hashed password
+function compareSHA256(plainPassword: string, hashedPassword: string): boolean {
+  return hashSHA256(plainPassword) === hashedPassword;
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma) as Adapter,
@@ -35,7 +45,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("No user found");
         }
 
-        const passwordMatch = compareSync(password, user.password);
+        // Compare the password using SHA256
+        const passwordMatch = compareSHA256(password, user.password);
 
         if (!passwordMatch) {
           return null;

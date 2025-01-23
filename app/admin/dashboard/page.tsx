@@ -452,19 +452,25 @@ export default function Dashboard() {
             <CardTitle className="text-2xl">Activity Logs</CardTitle>
             <CardDescription>Recent changes in the system</CardDescription>
 
-            <div className="flex gap-4 mb-4 absolute right-12">
-              <Input
-                type="date"
-                value={startDate}
-                onChange={handleStartDateChange}
-                placeholder="Start Date"
-              />
-              <Input
-                type="date"
-                value={endDate}
-                onChange={handleEndDateChange}
-                placeholder="End Date"
-              />
+            <div className="flex items-center gap-4 mb-4 absolute right-12">
+              <span className="whitespace-nowrap text-sm">Filter date:</span>
+              <div className="flex items-center gap-4">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={handleStartDateChange}
+                  placeholder="Start Date"
+                  className="h-9"
+                />
+                <span className="flex items-center">-</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={handleEndDateChange}
+                  placeholder="End Date"
+                  className="h-9"
+                />
+              </div>
             </div>
           </CardHeader>
           <CardContent>

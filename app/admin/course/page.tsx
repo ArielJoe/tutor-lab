@@ -163,8 +163,8 @@ export default function CoursePage() {
                 <TableHead>Course ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead>Duration (hrs)</TableHead>
-                <TableHead>Price</TableHead>
+                <TableHead>Duration (hrs/week)</TableHead>
+                <TableHead>Price/month</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -174,10 +174,10 @@ export default function CoursePage() {
                   <TableCell className="p-5">{course.id}</TableCell>
                   <TableCell>{course.course_name}</TableCell>
                   <TableCell>{course.description}</TableCell>
-                  <TableCell>{course.duration || "N/A"}</TableCell>
+                  <TableCell>{course.duration}</TableCell>
                   <TableCell>
                     {course.price
-                      ? `Rp${course.price.toLocaleString("id-ID")}`
+                      ? `Rp${course.price.toLocaleString("id-ID")}` + ",00"
                       : "N/A"}
                   </TableCell>
                   <TableCell>
@@ -224,7 +224,7 @@ export default function CoursePage() {
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">
-                                Duration (hrs)
+                                Duration (hrs/week)
                               </Label>
                               <Input
                                 type="number"
@@ -239,7 +239,7 @@ export default function CoursePage() {
                               />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                              <Label className="text-right">Price</Label>
+                              <Label className="text-right">Price/month</Label>
                               <Input
                                 type="number"
                                 className="col-span-3"
@@ -358,7 +358,7 @@ export default function CoursePage() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Duration (hrs)</Label>
+                <Label className="text-right">Duration (hrs/week)</Label>
                 <Input
                   type="number"
                   className="col-span-3"
@@ -372,7 +372,7 @@ export default function CoursePage() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Price</Label>
+                <Label className="text-right">Price/month</Label>
                 <Input
                   type="number"
                   className="col-span-3"

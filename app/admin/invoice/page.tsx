@@ -460,25 +460,64 @@ export default function Invoice() {
         <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Transaction Details</DialogTitle>
+              <DialogTitle className="text-2xl">
+                Transaction Details
+              </DialogTitle>
               <DialogDescription>
                 Details for Invoice #{selectedInvoice?.id}
               </DialogDescription>
             </DialogHeader>
             {selectedInvoice && (
               <div className="space-y-4">
+                {/* Student Name */}
                 <div>
                   <h3 className="font-medium">Student:</h3>
                   <p>{selectedInvoice.student?.name}</p>
                 </div>
+
+                {/* Amount */}
                 <div>
                   <h3 className="font-medium">Amount:</h3>
                   <p>Rp{formatRevenue(selectedInvoice.amount)}</p>
                 </div>
+
+                {/* Status */}
                 <div>
                   <h3 className="font-medium">Status:</h3>
                   <p>{selectedInvoice.status}</p>
                 </div>
+
+                {/* Created At */}
+                <div>
+                  <h3 className="font-medium">Created At:</h3>
+                  <p>
+                    {new Date(selectedInvoice.created_at).toLocaleDateString(
+                      "en-GB",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }
+                    )}
+                  </p>
+                </div>
+
+                {/* Due Date */}
+                <div>
+                  <h3 className="font-medium">Due Date:</h3>
+                  <p>
+                    {new Date(selectedInvoice.due_date).toLocaleDateString(
+                      "en-GB",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }
+                    )}
+                  </p>
+                </div>
+
+                {/* Courses */}
                 <div>
                   <h3 className="font-medium">Courses:</h3>
                   <ul className="list-disc pl-5">

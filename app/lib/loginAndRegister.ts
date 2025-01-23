@@ -1,12 +1,15 @@
 "use server";
 
-import { hashSync } from "bcrypt";
+import { createHash } from "crypto";
 import prisma from "./db";
 import { loginSchema } from "./zod";
 import { signIn } from "../auth";
 import { AuthError } from "next-auth";
 
-const SALT_ROUNDS = 10;
+// Function to hash a password using SHA256
+function hashSHA256(password: string): string {
+  return createHash("sha256").update(password).digest("hex");
+}
 
 export const registerCredentials = async (
   name: string,
@@ -20,8 +23,8 @@ export const registerCredentials = async (
       throw new Error("Missing required fields");
     }
 
-    // Hash the password
-    const hashedPassword = hashSync(password, SALT_ROUNDS);
+    // Hash the password using SHA256
+    const hashedPassword = hashSHA256(password);
 
     // Create the user in the database
     const user = await prisma.user.create({
