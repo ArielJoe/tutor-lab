@@ -19,7 +19,7 @@ import {
 import { getStudentsByCourseId } from "../controllers/student.controller";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Loader2 } from "lucide-react"; // Import Loader2 for spinner
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trash2, Pencil } from "lucide-react";
@@ -79,6 +79,7 @@ export default function CoursePage() {
   const [isViewStudentsSheetOpen, setIsViewStudentsSheetOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true); // Loading state
   const pageSize = 10;
 
   useEffect(() => {
@@ -86,14 +87,25 @@ export default function CoursePage() {
   }, [refresh]);
 
   async function fetchAllCourses() {
-    const courses = await getCourses();
-    if (courses) {
-      setCourses(courses);
-    } else {
+    setLoading(true); // Set loading to true before fetching data
+    try {
+      const courses = await getCourses();
+      if (courses) {
+        setCourses(courses);
+      } else {
+        toast({
+          variant: "destructive",
+          description: `No courses found`,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch courses:", error);
       toast({
         variant: "destructive",
-        description: `No courses found`,
+        description: "Failed to fetch courses. Please try again.",
       });
+    } finally {
+      setLoading(false); // Set loading to false after fetching data
     }
   }
 
@@ -110,12 +122,20 @@ export default function CoursePage() {
   }
 
   async function handleDelete(name: string, id: number) {
-    await deleteCourseById(id);
-    setRefresh((prev) => !prev);
-    toast({
-      className: "bg-green-900",
-      description: `${name} deleted successfully`,
-    });
+    try {
+      await deleteCourseById(id);
+      setRefresh((prev) => !prev);
+      toast({
+        className: "bg-green-900",
+        description: `${name} deleted successfully`,
+      });
+    } catch (error) {
+      console.error("Failed to delete course:", error);
+      toast({
+        variant: "destructive",
+        description: "Failed to delete course. Please try again.",
+      });
+    }
   }
 
   async function handleUpdate() {
@@ -214,7 +234,14 @@ export default function CoursePage() {
           }}
         />
       </div>
-      {courses.length > 0 ? (
+
+      {/* Loading State */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" /> {/* Spinner */}
+          <span className="ml-2">Loading Courses Data...</span>
+        </div>
+      ) : courses.length > 0 ? (
         <div className="px-5 grid gap-5">
           <Table className="border">
             <TableHeader>
@@ -444,7 +471,7 @@ export default function CoursePage() {
           </div>
         </div>
       ) : (
-        <div className="p-5 text-center">Loading Courses Data...</div>
+        <div className="p-5 text-center">No courses found.</div>
       )}
 
       <div className="fixed bottom-5 right-5">

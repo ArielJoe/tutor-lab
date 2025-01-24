@@ -30,9 +30,27 @@ export async function getSchedulesByTeacherId(
  * Membuat jadwal baru.
  * @param data - Objek jadwal (Schedule) yang akan dibuat.
  * @returns Jadwal yang baru dibuat.
+ * @throws Error jika jadwal sudah ada (duplikat).
  */
 export async function createSchedule(data: Schedule) {
   try {
+    // Cek apakah jadwal dengan field yang sama sudah ada
+    const existingSchedule = await prisma.schedule.findFirst({
+      where: {
+        day: data.day,
+        start_time: data.start_time,
+        Teacher_id: data.Teacher_id,
+        Course_id: data.Course_id,
+        Period_id: data.Period_id,
+      },
+    });
+
+    // Jika jadwal sudah ada, lempar error
+    if (existingSchedule) {
+      throw new Error("Schedule with the same details already exists.");
+    }
+
+    // Jika tidak ada duplikat, buat jadwal baru
     const schedule = await prisma.schedule.create({
       data: {
         day: data.day,
@@ -43,6 +61,7 @@ export async function createSchedule(data: Schedule) {
         Period_id: data.Period_id, // Menghubungkan dengan periode yang sudah ada
       },
     });
+
     return schedule;
   } catch (error) {
     console.error("Failed to create schedule:", error);

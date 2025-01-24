@@ -15,14 +15,14 @@ import { getSession } from "@/app/lib/session";
 import { Session } from "next-auth";
 import Navbar from "@/app/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react"; // Import the Eye icon
+import { Eye, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog"; // Import Dialog components
+} from "@/components/ui/dialog";
 
 export default function StudentInvoice() {
   const [invoices, setInvoices] = useState<any>([]);
@@ -30,8 +30,10 @@ export default function StudentInvoice() {
   const [error, setError] = useState<any>(null);
   const [studentId, setStudentId] = useState<number | null>(null);
   const [sessionData, setSessionData] = useState<Session | null>(null);
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null); // State to store selected invoice details
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false); // State to control details dialog visibility
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [hasPendingInvoices, setHasPendingInvoices] = useState(false); // State untuk mengecek invoice pending
+  const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false); // State untuk mengontrol dialog reminder
 
   // Fetch session and student ID
   useEffect(() => {
@@ -69,6 +71,12 @@ export default function StudentInvoice() {
         try {
           const data = await getInvoicesByStudentId(studentId);
           setInvoices(data);
+
+          // Cek apakah ada invoice dengan status "Pending"
+          const pendingInvoices = data.filter(
+            (invoice: any) => invoice.status === "Pending"
+          );
+          setHasPendingInvoices(pendingInvoices.length > 0);
         } catch (err) {
           setError(err);
         } finally {
@@ -80,45 +88,21 @@ export default function StudentInvoice() {
     fetchInvoices();
   }, [studentId]);
 
-  // Function to handle transaction creation for a specific invoice
-  const handleCreateTransaction = async (amount: number, invoiceId: number) => {
-    const data = {
-      id: invoiceId, // Use the invoice ID
-      productName: "Invoice Payment", // You can customize this
-      price: amount, // Use the invoice amount
-      quantity: 1, // Quantity is 1 for invoice payments
-    };
-
-    try {
-      const response = await fetch("/api/midtrans", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create transaction token");
-      }
-
-      const requestData = await response.json();
-      console.log("Transaction Token:", requestData.token);
-
-      // Redirect the user to the Midtrans payment page
-      if (requestData.token) {
-        window.location.href = `https://app.sandbox.midtrans.com/snap/v2/vtweb/${requestData.token}`;
-      }
-    } catch (error) {
-      console.error("Error during checkout:", error);
-    }
-  };
-
   // Function to handle showing invoice details
   const handleShowDetails = (invoice: any) => {
-    setSelectedInvoice(invoice); // Set the selected invoice
-    setIsDetailsOpen(true); // Open the details dialog
+    setSelectedInvoice(invoice);
+    setIsDetailsOpen(true);
   };
+
+  // Function to handle reminder click
+  const handleReminderClick = () => {
+    setIsReminderDialogOpen(true); // Buka dialog reminder
+  };
+
+  // Dapatkan daftar invoice yang masih "Pending"
+  const pendingInvoices = invoices.filter(
+    (invoice: any) => invoice.status === "Pending"
+  );
 
   if (error) {
     return <div className="p-6">Error: {error.message}</div>;
@@ -165,34 +149,81 @@ export default function StudentInvoice() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      Rp{invoice.amount.toLocaleString("id-ID")}
+                      Rp{invoice.amount.toLocaleString("id-ID")},00
                     </TableCell>
                     <TableCell>{invoice.method}</TableCell>
                     <TableCell className="flex gap-2">
                       <Button
                         size="icon"
                         className="bg-blue-500 hover:bg-blue-600 text-white"
-                        onClick={() => handleShowDetails(invoice)} // Open details dialog
+                        onClick={() => handleShowDetails(invoice)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {/* <Button
-                        onClick={() =>
-                          handleCreateTransaction(invoice.amount, invoice.id)
-                        }
-                      >
-                        Pay Now
-                      </Button> */}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <p className="p-6">No invoices found.</p>
+            <p>No invoices found.</p>
           )}
         </div>
       )}
+
+      {/* Reminder Button */}
+      {hasPendingInvoices && (
+        <div className="fixed bottom-6 right-6">
+          <Button
+            variant="destructive"
+            className="flex items-center gap-2 shadow-lg"
+            onClick={handleReminderClick}
+          >
+            <AlertCircle className="h-5 w-5" />
+            <span>Pending Invoices</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Reminder Dialog */}
+      <Dialog
+        open={isReminderDialogOpen}
+        onOpenChange={setIsReminderDialogOpen}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Pending Invoices</DialogTitle>
+            <DialogDescription>
+              You have {pendingInvoices.length} pending invoices. Please
+              complete the payment before the due date.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {pendingInvoices.map((invoice: any) => (
+              <div
+                key={invoice.id}
+                className="border p-4 rounded-lg bg-destructive"
+              >
+                <div className="flex justify-between items-center">
+                  <div className="text-white light:text-secondary">
+                    <h3 className="font-medium">Invoice #{invoice.id}</h3>
+                    <p className="text-sm">
+                      Due Date: {invoice.due_date.toLocaleString()}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleShowDetails(invoice)}
+                  >
+                    View Details
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Invoice Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
@@ -219,7 +250,7 @@ export default function StudentInvoice() {
               </div>
               <div>
                 <h3 className="font-medium">Amount:</h3>
-                <p>Rp{selectedInvoice.amount.toLocaleString("id-ID")}</p>
+                <p>Rp{selectedInvoice.amount.toLocaleString("id-ID")},00</p>
               </div>
               <div>
                 <h3 className="font-medium">Payment Method:</h3>
@@ -233,7 +264,8 @@ export default function StudentInvoice() {
                       (selectedCourse: any, index: number) => (
                         <li key={index}>
                           {selectedCourse.course.course_name} (Rp
-                          {selectedCourse.course.price.toLocaleString("id-ID")})
+                          {selectedCourse.course.price.toLocaleString("id-ID")}
+                          ,00)
                         </li>
                       )
                     )}

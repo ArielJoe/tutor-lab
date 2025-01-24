@@ -17,7 +17,7 @@ import {
 } from "../controllers/student.controller";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
-import { EllipsisVertical, Search } from "lucide-react";
+import { EllipsisVertical, Search, Loader2 } from "lucide-react"; // Import Loader2 for spinner
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trash2, Pencil } from "lucide-react";
@@ -66,6 +66,7 @@ export default function StudentPage() {
   );
   const [newPassword, setNewPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({}); // Track validation errors
+  const [loading, setLoading] = useState(true); // Loading state
   const pageSize = 10;
 
   useEffect(() => {
@@ -77,29 +78,51 @@ export default function StudentPage() {
   }, [refresh]);
 
   async function fetchAllStudents() {
-    const students = await getStudents();
-    if (students) {
-      setStudents(students);
-    } else {
-      setNotFound(true);
+    setLoading(true); // Set loading to true before fetching data
+    try {
+      const students = await getStudents();
+      if (students) {
+        setStudents(students);
+      } else {
+        setNotFound(true);
+      }
+    } catch (error) {
+      console.error("Failed to fetch students:", error);
+      toast({
+        variant: "destructive",
+        description: "Failed to fetch students. Please try again.",
+      });
+    } finally {
+      setLoading(false); // Set loading to false after fetching data
     }
   }
 
   async function fetchStudents() {
     if (studentName) {
-      const studentData = await getStudentsByName(studentName);
-      if (studentData.length !== 0) {
-        setStudents(studentData);
-        toast({
-          className: "bg-green-900",
-          description: `${studentName} found`,
-        });
-      } else {
+      setLoading(true); // Set loading to true before fetching data
+      try {
+        const studentData = await getStudentsByName(studentName);
+        if (studentData.length !== 0) {
+          setStudents(studentData);
+          toast({
+            className: "bg-green-900",
+            description: `${studentName} found`,
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            description: `${studentName} not found`,
+          });
+          setStudents([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch students by name:", error);
         toast({
           variant: "destructive",
-          description: `${studentName} not found`,
+          description: "Failed to fetch students by name. Please try again.",
         });
-        setStudents([]);
+      } finally {
+        setLoading(false); // Set loading to false after fetching data
       }
     } else {
       toast({
@@ -110,12 +133,20 @@ export default function StudentPage() {
   }
 
   async function handleDelete(name: string, id: number) {
-    await deleteStudentById(id);
-    setRefresh((prev) => !prev);
-    toast({
-      className: "bg-green-900",
-      description: `${name} deleted successfully`,
-    });
+    try {
+      await deleteStudentById(id);
+      setRefresh((prev) => !prev);
+      toast({
+        className: "bg-green-900",
+        description: `${name} deleted successfully`,
+      });
+    } catch (error) {
+      console.error("Failed to delete student:", error);
+      toast({
+        variant: "destructive",
+        description: "Failed to delete student. Please try again.",
+      });
+    }
   }
 
   async function handleUpdate() {
@@ -212,7 +243,14 @@ export default function StudentPage() {
           }}
         />
       </div>
-      {students.length > 0 ? (
+
+      {/* Loading State */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" /> {/* Spinner */}
+          <span className="ml-2">Loading Students Data...</span>
+        </div>
+      ) : students.length > 0 ? (
         <div className="px-5 grid gap-5">
           <Table className="border">
             <TableHeader>
@@ -501,7 +539,7 @@ export default function StudentPage() {
           </div>
         </div>
       ) : (
-        <div className="p-5 text-center">Loading Students Data...</div>
+        <div className="p-5 text-center">No students found.</div>
       )}
     </div>
   );

@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { Trash2, ChevronLeft, ChevronRight, Eye, Loader2 } from "lucide-react"; // Import Loader2 for spinner
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import {
   ChartConfig,
@@ -50,14 +50,26 @@ export default function Invoice() {
   const [endDate, setEndDate] = useState<string>("");
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null); // State to store selected invoice details
   const [isDetailsOpen, setIsDetailsOpen] = useState(false); // State to control details dialog visibility
+  const [loading, setLoading] = useState(true); // Loading state
   const pageSize = 10; // Number of invoices per page
 
   useEffect(() => {
     const fetchInvoices = async () => {
-      const data = await getInvoices();
-      setInvoices(data);
-      calculateTotals(data);
-      updateChartData(data);
+      setLoading(true); // Set loading to true before fetching data
+      try {
+        const data = await getInvoices();
+        setInvoices(data);
+        calculateTotals(data);
+        updateChartData(data);
+      } catch (error) {
+        console.error("Failed to fetch invoices:", error);
+        toast({
+          description: "Failed to fetch invoices. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false); // Set loading to false after fetching data
+      }
     };
 
     fetchInvoices();
@@ -282,7 +294,13 @@ export default function Invoice() {
           />
         </div>
 
-        {filteredInvoices.length > 0 ? (
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" /> {/* Spinner */}
+            <span className="ml-2">Loading Invoices Data...</span>
+          </div>
+        ) : filteredInvoices.length > 0 ? (
           <>
             <Table>
               <TableHeader>
@@ -308,7 +326,16 @@ export default function Invoice() {
                     <TableCell>
                       {new Date(invoice.due_date).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>Rp{formatRevenue(invoice.amount)},00</TableCell>
+                    <TableCell>
+                      Rp
+                      {formatRevenue(
+                        invoice.selectedCourses?.reduce(
+                          (sum: number, course: any) =>
+                            sum + (course.course?.price || 0),
+                          0
+                        )
+                      )}
+                    </TableCell>
                     <TableCell>{invoice.method}</TableCell>
                     <TableCell>
                       <span
@@ -480,7 +507,16 @@ export default function Invoice() {
                 {/* Amount */}
                 <div>
                   <h3 className="font-medium">Amount:</h3>
-                  <p>Rp{formatRevenue(selectedInvoice.amount)}</p>
+                  <p>
+                    Rp
+                    {formatRevenue(
+                      selectedInvoice.selectedCourses?.reduce(
+                        (sum: number, course: any) =>
+                          sum + (course.course?.price || 0),
+                        0
+                      )
+                    )}
+                  </p>
                 </div>
 
                 {/* Status */}

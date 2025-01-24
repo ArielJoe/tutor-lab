@@ -20,7 +20,7 @@ import { getStudentsByScheduleId } from "../controllers/student.controller";
 import { getTeachers } from "../controllers/teacher.controller";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trash2, Pencil } from "lucide-react";
@@ -81,6 +81,7 @@ export default function TeacherSchedule() {
   const [isViewStudentsSheetOpen, setIsViewStudentsSheetOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true); // Loading state
   const pageSize = 10;
 
   const daysOfWeek = [
@@ -98,31 +99,58 @@ export default function TeacherSchedule() {
   }, [refresh]);
 
   async function fetchAllSchedules() {
-    const schedules = await getSchedulesTeacherCourse();
-    if (schedules) {
-      setSchedules(schedules);
-    } else {
+    setLoading(true); // Set loading to true before fetching data
+    try {
+      const schedules = await getSchedulesTeacherCourse();
+      if (schedules) {
+        setSchedules(schedules);
+      } else {
+        toast({
+          variant: "destructive",
+          description: `No schedules found`,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch schedules:", error);
       toast({
         variant: "destructive",
-        description: `No schedules found`,
+        description: "Failed to fetch schedules. Please try again.",
       });
+    } finally {
+      setLoading(false); // Set loading to false after fetching data
     }
   }
 
   async function fetchTeachersAndCourses() {
-    const teachers = await getTeachers();
-    const courses = await getCourses();
-    setTeachers(teachers);
-    setCourses(courses);
+    try {
+      const teachers = await getTeachers();
+      const courses = await getCourses();
+      setTeachers(teachers);
+      setCourses(courses);
+    } catch (error) {
+      console.error("Failed to fetch teachers or courses:", error);
+      toast({
+        variant: "destructive",
+        description: "Failed to fetch teachers or courses. Please try again.",
+      });
+    }
   }
 
   async function handleDelete(id: number) {
-    await deleteScheduleById(id);
-    setRefresh((prev) => !prev);
-    toast({
-      className: "bg-green-900",
-      description: `Schedule deleted successfully`,
-    });
+    try {
+      await deleteScheduleById(id);
+      setRefresh((prev) => !prev);
+      toast({
+        className: "bg-green-900",
+        description: `Schedule deleted successfully`,
+      });
+    } catch (error) {
+      console.error("Failed to delete schedule:", error);
+      toast({
+        variant: "destructive",
+        description: "Failed to delete schedule. Please try again.",
+      });
+    }
   }
 
   async function handleUpdate() {
@@ -178,6 +206,12 @@ export default function TeacherSchedule() {
           }
         });
         setErrors(fieldErrors);
+      } else {
+        // console.error("Failed to add schedule:", error);
+        toast({
+          variant: "destructive",
+          description: "Schedule with the same details already exists.",
+        });
       }
     }
   }
@@ -222,7 +256,14 @@ export default function TeacherSchedule() {
           }}
         />
       </div>
-      {schedules.length > 0 ? (
+
+      {/* Loading State */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" /> {/* Spinner */}
+          <span className="ml-2">Loading Schedules Data...</span>
+        </div>
+      ) : schedules.length > 0 ? (
         <div className="px-5 grid gap-5">
           <Table className="border">
             <TableHeader>
@@ -486,7 +527,7 @@ export default function TeacherSchedule() {
           </div>
         </div>
       ) : (
-        <div className="p-5 text-center">Loading Schedules Data...</div>
+        <div className="p-5 text-center">No schedules found.</div>
       )}
 
       {/* Add Schedule Button */}

@@ -187,7 +187,7 @@ export default function TeacherScheduleTable() {
       <Navbar title={`Welcome, ${sessionData?.user?.name || ""}`} />
 
       {loading && (
-        <div className="p-6 text-center">Fetching teacher's schedule...</div>
+        <div className="p-6 text-center">Getting teacher's schedule...</div>
       )}
 
       {!loading && (

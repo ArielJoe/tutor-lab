@@ -7,26 +7,28 @@ import { addSelectedCourse } from "./selected_course.controller";
  * Membuat invoice dari kontrak studi untuk seorang siswa.
  * @param studentId - ID siswa yang terkait dengan invoice.
  * @param totalAmount - Jumlah total yang harus dibayar.
+ * @param paymentMethod - Metode pembayaran (Transfer Bank atau Tunai).
  * @returns Invoice yang baru dibuat.
  */
 export const createInvoiceFromStudyContract = async (
   studentId: number,
-  totalAmount: number
+  totalAmount: number,
+  paymentMethod: "Transfer" | "Cash"
 ) => {
   try {
     // Membuat invoice baru
     const invoice = await prisma.invoice.create({
       data: {
         created_at: new Date(),
-        due_date: new Date(new Date().setDate(new Date().getDate() + 7)), // Jatuh tempo dalam 7 hari
+        due_date: new Date(new Date().setDate(new Date().getDate() + 7)),
         status: "Pending",
         amount: totalAmount,
-        method: "Bank Transfer", // Metode pembayaran default
-        Student_id: studentId, // Menghubungkan invoice dengan siswa
+        method: paymentMethod,
+        Student_id: studentId,
       },
     });
 
-    // Mengambil kontrak studi untuk siswa tersebut
+    // Mengambil kontrak studi untuk siswa dengan kursus unik
     const studyContracts = await prisma.studyContract.findMany({
       where: {
         Student_id: studentId,
@@ -40,20 +42,27 @@ export const createInvoiceFromStudyContract = async (
       },
     });
 
-    // Menambahkan kursus yang dipilih untuk setiap kontrak studi
+    // Menyimpan course_id yang sudah ditambahkan untuk menghindari duplikasi
+    const uniqueCourses = new Map<string, number>();
+
+    // Menambahkan kursus unik untuk setiap kontrak studi
     for (const contract of studyContracts) {
       if (contract.schedule?.course) {
-        await addSelectedCourse(
-          contract.schedule.course.id, // course_id
-          invoice.id // invoice_id
-        );
+        const courseName = contract.schedule.course.course_name;
+        const coursePrice = contract.schedule.course.price || 0;
+
+        // Hanya tambahkan jika course name belum pernah ditambahkan sebelumnya
+        if (!uniqueCourses.has(courseName)) {
+          await addSelectedCourse(contract.schedule.course.id, invoice.id);
+          uniqueCourses.set(courseName, coursePrice);
+        }
       }
     }
 
     return invoice;
   } catch (error) {
-    console.error("Failed to create invoice:", error);
-    throw new Error("Failed to create invoice");
+    console.error("Failed to make invoice:", error);
+    throw new Error("Failed to make invoice");
   }
 };
 
