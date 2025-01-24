@@ -1,5 +1,6 @@
 "use client";
 
+import { z } from "zod";
 import {
   Table,
   TableBody,
@@ -13,9 +14,10 @@ import {
   deleteScheduleById,
   updateSchedule,
   createSchedule,
-} from "../actions/schedule/actions";
-import { getSchedulesTeacherCourse } from "../actions/schedule/actions";
-import { getTeachers } from "../actions/teacher/actions";
+  getSchedulesTeacherCourse,
+} from "../controllers/schedule.controller";
+import { getStudentsByScheduleId } from "../controllers/student.controller";
+import { getTeachers } from "../controllers/teacher.controller";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
@@ -42,9 +44,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Schedule } from "@/app/lib/interfaces";
+import { Schedule, Student } from "@/app/lib/interfaces";
 import { numberToDay } from "@/app/lib/numToDay";
-import { getCourses } from "../actions/course/actions";
+import { getCourses } from "../controllers/course.controller";
 import {
   Select,
   SelectContent,
@@ -52,6 +54,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { scheduleSchema } from "@/app/lib/zod";
 
 export default function TeacherSchedule() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -74,6 +77,10 @@ export default function TeacherSchedule() {
     Course_id: undefined,
     Period_id: 1, // Ensure Period_id is always 1
   });
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isViewStudentsSheetOpen, setIsViewStudentsSheetOpen] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const pageSize = 10;
 
   const daysOfWeek = [
@@ -120,32 +127,33 @@ export default function TeacherSchedule() {
 
   async function handleUpdate() {
     if (editableSchedule) {
-      const updatedSchedule = {
-        ...editableSchedule,
-        Period_id: 1, // Ensure Period_id is always 1
-      };
-      await updateSchedule(updatedSchedule);
-      setRefresh((prev) => !prev);
-      toast({
-        className: "bg-green-900",
-        description: `Schedule updated successfully`,
-      });
+      try {
+        const validatedData = scheduleSchema.parse(editableSchedule);
+        await updateSchedule(validatedData as Schedule); // Ensure id is included
+        setRefresh((prev) => !prev);
+        toast({
+          className: "bg-green-900",
+          description: `Schedule updated successfully`,
+        });
+        setEditErrors({});
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          const fieldErrors: Record<string, string> = {};
+          error.errors.forEach((err) => {
+            if (err.path) {
+              fieldErrors[err.path[0]] = err.message;
+            }
+          });
+          setEditErrors(fieldErrors);
+        }
+      }
     }
   }
 
   async function handleAddSchedule() {
-    if (
-      newSchedule.day &&
-      newSchedule.start_time &&
-      newSchedule.duration &&
-      newSchedule.Teacher_id &&
-      newSchedule.Course_id
-    ) {
-      const scheduleToCreate = {
-        ...newSchedule,
-        Period_id: 1, // Ensure Period_id is always 1
-      };
-      await createSchedule(scheduleToCreate as Schedule);
+    try {
+      const validatedData = scheduleSchema.parse(newSchedule);
+      await createSchedule(validatedData as Schedule);
       setRefresh((prev) => !prev);
       setIsAddDialogOpen(false);
       toast({
@@ -158,12 +166,31 @@ export default function TeacherSchedule() {
         duration: 0,
         Teacher_id: undefined,
         Course_id: undefined,
-        Period_id: 1, // Reset Period_id to 1 for the next schedule
+        Period_id: 1,
       });
-    } else {
+      setErrors({});
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path) {
+            fieldErrors[err.path[0]] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      }
+    }
+  }
+
+  async function fetchStudentsForSchedule(scheduleId: number) {
+    try {
+      const studentsData = await getStudentsByScheduleId(scheduleId);
+      setStudents(studentsData);
+      setIsViewStudentsSheetOpen(true);
+    } catch (error) {
       toast({
         variant: "destructive",
-        description: `Please fill all fields`,
+        description: "Failed to fetch students",
       });
     }
   }
@@ -220,6 +247,12 @@ export default function TeacherSchedule() {
                   <TableCell>{schedule.course?.course_name}</TableCell>
                   <TableCell>
                     <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => fetchStudentsForSchedule(schedule.id)}
+                      >
+                        View Students
+                      </Button>
                       <Sheet>
                         <SheetTrigger asChild>
                           <Button
@@ -231,7 +264,9 @@ export default function TeacherSchedule() {
                         </SheetTrigger>
                         <SheetContent>
                           <SheetHeader>
-                            <SheetTitle>Edit Schedule</SheetTitle>
+                            <SheetTitle className="text-2xl">
+                              Edit Schedule
+                            </SheetTitle>
                           </SheetHeader>
                           <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -262,32 +297,44 @@ export default function TeacherSchedule() {
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Start Time</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableSchedule?.start_time || ""}
-                                onChange={(e) =>
-                                  setEditableSchedule({
-                                    ...editableSchedule!,
-                                    start_time: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableSchedule?.start_time || ""}
+                                  onChange={(e) =>
+                                    setEditableSchedule({
+                                      ...editableSchedule!,
+                                      start_time: e.target.value,
+                                    })
+                                  }
+                                />
+                                {editErrors.start_time && (
+                                  <span className="text-red-500 text-sm mt-1 block">
+                                    {editErrors.start_time}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">
                                 Duration (hrs)
                               </Label>
-                              <Input
-                                type="number"
-                                className="col-span-3"
-                                value={editableSchedule?.duration || ""}
-                                onChange={(e) =>
-                                  setEditableSchedule({
-                                    ...editableSchedule!,
-                                    duration: parseInt(e.target.value),
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  type="number"
+                                  value={editableSchedule?.duration || ""}
+                                  onChange={(e) =>
+                                    setEditableSchedule({
+                                      ...editableSchedule!,
+                                      duration: parseInt(e.target.value),
+                                    })
+                                  }
+                                />
+                                {editErrors.duration && (
+                                  <span className="text-red-500 text-sm mt-1 block">
+                                    {editErrors.duration}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Teacher</Label>
@@ -383,6 +430,39 @@ export default function TeacherSchedule() {
               ))}
             </TableBody>
           </Table>
+
+          {/* Bottom Sheet for Viewing Students */}
+          <Sheet
+            open={isViewStudentsSheetOpen}
+            onOpenChange={setIsViewStudentsSheetOpen}
+          >
+            <SheetContent side="bottom" className="h-[80vh] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle className="text-2xl">Enrolled Students</SheetTitle>
+              </SheetHeader>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone Number</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell>{student.id}</TableCell>
+                      <TableCell>{student.name}</TableCell>
+                      <TableCell>{student.email}</TableCell>
+                      <TableCell>{student.phone_number}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </SheetContent>
+          </Sheet>
+
           <div className="flex justify-center items-center gap-5 py-4">
             <Button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
@@ -447,30 +527,42 @@ export default function TeacherSchedule() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Start Time</Label>
-                <Input
-                  className="col-span-3"
-                  value={newSchedule.start_time || ""}
-                  onChange={(e) =>
-                    setNewSchedule({
-                      ...newSchedule,
-                      start_time: e.target.value,
-                    })
-                  }
-                />
+                <div className="col-span-3">
+                  <Input
+                    value={newSchedule.start_time || ""}
+                    onChange={(e) =>
+                      setNewSchedule({
+                        ...newSchedule,
+                        start_time: e.target.value,
+                      })
+                    }
+                  />
+                  {errors.start_time && (
+                    <span className="text-red-500 text-sm mt-1 block">
+                      {errors.start_time}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Duration (hrs)</Label>
-                <Input
-                  type="number"
-                  className="col-span-3"
-                  value={newSchedule.duration || ""}
-                  onChange={(e) =>
-                    setNewSchedule({
-                      ...newSchedule,
-                      duration: parseInt(e.target.value),
-                    })
-                  }
-                />
+                <div className="col-span-3">
+                  <Input
+                    type="number"
+                    value={newSchedule.duration || ""}
+                    onChange={(e) =>
+                      setNewSchedule({
+                        ...newSchedule,
+                        duration: parseInt(e.target.value),
+                      })
+                    }
+                  />
+                  {errors.duration && (
+                    <span className="text-red-500 text-sm mt-1 block">
+                      {errors.duration}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Teacher</Label>

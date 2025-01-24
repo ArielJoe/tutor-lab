@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { getCourses } from "../actions/course/actions";
-import { getTeachers } from "../actions/teacher/actions";
+import { getCourses } from "../controllers/course.controller";
+import { getTeachers } from "../controllers/teacher.controller";
 import { Course, Teacher, Schedule } from "@/app/lib/interfaces";
-import { createStudyContract } from "../actions/study_contract/actions";
-import { getSchedulesByTeacherId } from "../actions/schedule/actions";
+import { createStudyContract } from "../controllers/study_contract.controller";
+import { getSchedulesByTeacherId } from "../controllers/schedule.controller";
 import { toast } from "@/hooks/use-toast";
 import {
   Sheet,
@@ -108,6 +108,7 @@ export function AddCourse({ studentId }: { studentId: number }) {
     try {
       await createStudyContract(studyContractData);
       toast({
+        className: "bg-green-900",
         description: "Study contract added successfully",
       });
       console.log("Study contract added successfully");
@@ -132,7 +133,7 @@ export function AddCourse({ studentId }: { studentId: number }) {
       </SheetTrigger>
       <SheetContent side="bottom">
         <SheetHeader>
-          <SheetTitle>Manage Course</SheetTitle>
+          <SheetTitle className="text-2xl">{`Manage Student ${studentId}'s Courses`}</SheetTitle>
           <SheetDescription>
             Make changes to the course details here. Click save when you're
             done.

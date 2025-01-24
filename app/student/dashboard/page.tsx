@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getStudyContractsByStudentId } from "../actions/study_contract/actions";
-import { getStudentIdByEmail } from "../actions/student/actions";
+import { getStudyContractsByStudentId } from "../controllers/study_contract.controller";
+import { getStudentIdByEmail } from "../controllers/student.controller";
 import {
   Table,
   TableBody,

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getInvoicesByStudentId } from "@/app/student/actions/invoice/actions";
-import { getStudentIdByEmail } from "@/app/student/actions/student/actions";
+import { getInvoicesByStudentId } from "@/app/student/controllers/invoice.controller";
+import { getStudentIdByEmail } from "@/app/student/controllers/student.controller";
 import {
   Table,
   TableBody,

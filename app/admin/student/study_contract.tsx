@@ -20,9 +20,9 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
   getStudyContractByStudentId,
   deleteStudyContract,
-} from "../actions/study_contract/actions";
+} from "../controllers/study_contract.controller";
 import { Button } from "@/components/ui/button";
-import { createInvoiceFromStudyContract } from "../actions/invoice/actions";
+import { createInvoiceFromStudyContract } from "../controllers/invoice.controller";
 import { toast } from "@/hooks/use-toast";
 import { numberToDay } from "@/app/lib/numToDay";
 import { Trash2 } from "lucide-react";
@@ -104,7 +104,9 @@ export default function ShowStudentContracts({
       </SheetTrigger>
       <SheetContent side="bottom" className="h-[80vh] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Study Contracts for Student {studentId}</SheetTitle>
+          <SheetTitle className="text-2xl">
+            Study Contracts for Student {studentId}
+          </SheetTitle>
         </SheetHeader>
         <div className="py-4">
           {studyContracts.length > 0 ? (

@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { addStudent } from "../actions/student/actions";
-import { addTeacher } from "../actions/teacher/actions";
+import { addStudent } from "../controllers/student.controller";
+import { addTeacher } from "../controllers/teacher.controller";
 import { toast } from "@/hooks/use-toast";
 import { registerCredentials } from "@/app/lib/loginAndRegister";
+import { studentSchema, teacherSchema } from "@/app/lib/zod";
+import { z } from "zod";
 
 interface StudentData {
   name: string;
@@ -32,6 +34,7 @@ const StudentForm = ({
   handleStudentChange,
   handleStudentSubmit,
   formatDateForInput,
+  errors,
 }: {
   studentData: StudentData;
   handleStudentChange: (
@@ -39,6 +42,7 @@ const StudentForm = ({
   ) => void;
   handleStudentSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   formatDateForInput: (date: Date) => string;
+  errors: z.ZodFormattedError<StudentData> | null;
 }) => (
   <form
     onSubmit={handleStudentSubmit}
@@ -53,6 +57,11 @@ const StudentForm = ({
           onChange={handleStudentChange}
           className="w-full"
         />
+        {errors?.name && (
+          <p className="text-red-500 text-sm">
+            {errors.name._errors.join(", ")}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="birth_date">Birth Date</Label>
@@ -63,6 +72,11 @@ const StudentForm = ({
           className="w-full"
           type="date"
         />
+        {errors?.birth_date && (
+          <p className="text-red-500 text-sm">
+            {errors.birth_date._errors.join(", ")}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="student-address">Address</Label>
@@ -72,6 +86,11 @@ const StudentForm = ({
           onChange={handleStudentChange}
           className="w-full max-h-[100px]"
         />
+        {errors?.address && (
+          <p className="text-red-500 text-sm">
+            {errors.address._errors.join(", ")}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="student-email">Email</Label>
@@ -82,6 +101,11 @@ const StudentForm = ({
           className="w-full"
           type="email"
         />
+        {errors?.email && (
+          <p className="text-red-500 text-sm">
+            {errors.email._errors.join(", ")}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="student-phone">Phone Number</Label>
@@ -91,6 +115,11 @@ const StudentForm = ({
           onChange={handleStudentChange}
           className="w-full"
         />
+        {errors?.phone_number && (
+          <p className="text-red-500 text-sm">
+            {errors.phone_number._errors.join(", ")}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="parents_phone_number">Parents Phone Number</Label>
@@ -100,6 +129,11 @@ const StudentForm = ({
           onChange={handleStudentChange}
           className="w-full"
         />
+        {errors?.parents_phone_number && (
+          <p className="text-red-500 text-sm">
+            {errors.parents_phone_number._errors.join(", ")}
+          </p>
+        )}
       </div>
     </div>
     <div className="flex justify-end">
@@ -114,12 +148,14 @@ const TeacherForm = ({
   teacherData,
   handleTeacherChange,
   handleTeacherSubmit,
+  errors, // Tambahkan prop untuk menampilkan pesan error
 }: {
   teacherData: TeacherData;
   handleTeacherChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
   handleTeacherSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  errors: z.ZodFormattedError<TeacherData> | null; // Tipe error dari Zod
 }) => (
   <form
     onSubmit={handleTeacherSubmit}
@@ -134,6 +170,11 @@ const TeacherForm = ({
           onChange={handleTeacherChange}
           className="w-full"
         />
+        {errors?.name && (
+          <p className="text-red-500 text-sm">
+            {errors.name._errors.join(", ")}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="teacher-address">Address</Label>
@@ -143,6 +184,11 @@ const TeacherForm = ({
           onChange={handleTeacherChange}
           className="w-full max-h-[100px]"
         />
+        {errors?.address && (
+          <p className="text-red-500 text-sm">
+            {errors.address._errors.join(", ")}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="teacher-email">Email</Label>
@@ -153,6 +199,11 @@ const TeacherForm = ({
           className="w-full"
           type="email"
         />
+        {errors?.email && (
+          <p className="text-red-500 text-sm">
+            {errors.email._errors.join(", ")}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="teacher-phone">Phone Number</Label>
@@ -162,6 +213,11 @@ const TeacherForm = ({
           onChange={handleTeacherChange}
           className="w-full"
         />
+        {errors?.phone_number && (
+          <p className="text-red-500 text-sm">
+            {errors.phone_number._errors.join(", ")}
+          </p>
+        )}
       </div>
     </div>
     <div className="flex justify-end">
@@ -192,6 +248,11 @@ export default function Enrollment() {
     email: "",
     phone_number: "",
   });
+
+  const [studentErrors, setStudentErrors] =
+    useState<z.ZodFormattedError<StudentData> | null>(null);
+  const [teacherErrors, setTeacherErrors] =
+    useState<z.ZodFormattedError<TeacherData> | null>(null);
 
   const handleStudentChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -224,6 +285,12 @@ export default function Enrollment() {
   const handleStudentSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      const result = studentSchema.safeParse(studentData);
+      if (!result.success) {
+        setStudentErrors(result.error.format());
+        return;
+      }
+
       const submissionData = {
         ...studentData,
         birth_date: new Date(studentData.birth_date),
@@ -249,6 +316,7 @@ export default function Enrollment() {
         phone_number: "",
         parents_phone_number: "",
       });
+      setStudentErrors(null); // Reset errors setelah submit berhasil
     } catch (error) {
       console.error("Error adding student:", error);
     }
@@ -257,6 +325,12 @@ export default function Enrollment() {
   const handleTeacherSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      const result = teacherSchema.safeParse(teacherData);
+      if (!result.success) {
+        setTeacherErrors(result.error.format());
+        return;
+      }
+
       await addTeacher(teacherData);
       await registerCredentials(
         teacherData.name,
@@ -275,6 +349,7 @@ export default function Enrollment() {
         email: "",
         phone_number: "",
       });
+      setTeacherErrors(null); // Reset errors setelah submit berhasil
     } catch (error) {
       console.error("Error adding teacher:", error);
     }
@@ -311,12 +386,14 @@ export default function Enrollment() {
               handleStudentChange={handleStudentChange}
               handleStudentSubmit={handleStudentSubmit}
               formatDateForInput={formatDateForInput}
+              errors={studentErrors}
             />
           ) : (
             <TeacherForm
               teacherData={teacherData}
               handleTeacherChange={handleTeacherChange}
               handleTeacherSubmit={handleTeacherSubmit}
+              errors={teacherErrors}
             />
           )}
         </div>

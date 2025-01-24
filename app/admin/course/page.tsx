@@ -1,5 +1,6 @@
 "use client";
 
+import { z } from "zod";
 import {
   Table,
   TableBody,
@@ -14,7 +15,8 @@ import {
   getCourses,
   updateCourse,
   addCourse,
-} from "../actions/course/actions";
+} from "../controllers/course.controller";
+import { getStudentsByCourseId } from "../controllers/student.controller";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
@@ -41,6 +43,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { courseSchema } from "@/app/lib/zod";
 
 interface Course {
   id: number;
@@ -48,6 +51,14 @@ interface Course {
   description: string;
   duration: number;
   price: number;
+  studentCount?: number;
+}
+
+interface Student {
+  id: number;
+  name: string;
+  email: string;
+  phone_number: string;
 }
 
 export default function CoursePage() {
@@ -63,6 +74,11 @@ export default function CoursePage() {
     duration: 0,
     price: 0,
   });
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
+  const [isViewStudentsSheetOpen, setIsViewStudentsSheetOpen] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const pageSize = 10;
 
   useEffect(() => {
@@ -81,6 +97,18 @@ export default function CoursePage() {
     }
   }
 
+  async function fetchStudentsByCourseId(courseId: number) {
+    try {
+      const students = await getStudentsByCourseId(courseId);
+      setStudents(students);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        description: "Failed to fetch students",
+      });
+    }
+  }
+
   async function handleDelete(name: string, id: number) {
     await deleteCourseById(id);
     setRefresh((prev) => !prev);
@@ -92,23 +120,43 @@ export default function CoursePage() {
 
   async function handleUpdate() {
     if (editableCourse) {
-      await updateCourse(editableCourse);
-      setRefresh((prev) => !prev);
-      toast({
-        className: "bg-green-900",
-        description: `${editableCourse.course_name} updated successfully`,
-      });
+      try {
+        const validatedData = courseSchema.parse(editableCourse);
+        await updateCourse(validatedData);
+        setRefresh((prev) => !prev);
+        toast({
+          className: "bg-green-900",
+          description: `${editableCourse.course_name} updated successfully`,
+        });
+        setEditErrors({});
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          const fieldErrors: Record<string, string> = {};
+          error.errors.forEach((err) => {
+            if (err.path) {
+              fieldErrors[err.path[0]] = err.message;
+            }
+          });
+          setEditErrors(fieldErrors);
+        }
+      }
     }
   }
 
   async function handleAddCourse() {
-    if (
-      newCourse.course_name &&
-      newCourse.description &&
-      newCourse.duration &&
-      newCourse.price
-    ) {
-      await addCourse(newCourse as Course);
+    try {
+      // Ensure price is parsed as a number
+      const courseData = {
+        ...newCourse,
+        price: parseFloat(newCourse.price?.toString() || "0"),
+      };
+
+      const validatedData = courseSchema.parse(courseData);
+      const courseToAdd = {
+        ...validatedData,
+        studentCount: 0,
+      };
+      await addCourse(courseToAdd as Course);
       setRefresh((prev) => !prev);
       setIsAddDialogOpen(false);
       toast({
@@ -121,11 +169,22 @@ export default function CoursePage() {
         duration: 0,
         price: 0,
       });
-    } else {
-      toast({
-        variant: "destructive",
-        description: `Please fill all fields`,
-      });
+      setErrors({});
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path) {
+            fieldErrors[err.path[0]] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else if (error) {
+        toast({
+          variant: "destructive",
+          description: "Course name already exists",
+        });
+      }
     }
   }
 
@@ -182,6 +241,16 @@ export default function CoursePage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedCourseId(course.id);
+                          fetchStudentsByCourseId(course.id);
+                          setIsViewStudentsSheetOpen(true);
+                        }}
+                      >
+                        View Students
+                      </Button>
                       <Sheet>
                         <SheetTrigger asChild>
                           <Button
@@ -193,64 +262,90 @@ export default function CoursePage() {
                         </SheetTrigger>
                         <SheetContent>
                           <SheetHeader>
-                            <SheetTitle>Edit Course</SheetTitle>
+                            <SheetTitle className="text-2xl">
+                              Edit Course
+                            </SheetTitle>
                           </SheetHeader>
                           <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Name</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableCourse?.course_name || ""}
-                                onChange={(e) =>
-                                  setEditableCourse({
-                                    ...editableCourse!,
-                                    course_name: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableCourse?.course_name || ""}
+                                  onChange={(e) =>
+                                    setEditableCourse({
+                                      ...editableCourse!,
+                                      course_name: e.target.value,
+                                    })
+                                  }
+                                />
+                                {editErrors.course_name && (
+                                  <span className="text-red-500 text-sm mt-1 block">
+                                    {editErrors.course_name}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Description</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableCourse?.description || ""}
-                                onChange={(e) =>
-                                  setEditableCourse({
-                                    ...editableCourse!,
-                                    description: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableCourse?.description || ""}
+                                  onChange={(e) =>
+                                    setEditableCourse({
+                                      ...editableCourse!,
+                                      description: e.target.value,
+                                    })
+                                  }
+                                />
+                                {editErrors.description && (
+                                  <span className="text-red-500 text-sm mt-1 block">
+                                    {editErrors.description}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">
                                 Duration (hrs/week)
                               </Label>
-                              <Input
-                                type="number"
-                                className="col-span-3"
-                                value={editableCourse?.duration || ""}
-                                onChange={(e) =>
-                                  setEditableCourse({
-                                    ...editableCourse!,
-                                    duration: parseInt(e.target.value),
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  type="number"
+                                  value={editableCourse?.duration || ""}
+                                  onChange={(e) =>
+                                    setEditableCourse({
+                                      ...editableCourse!,
+                                      duration: parseInt(e.target.value),
+                                    })
+                                  }
+                                />
+                                {editErrors.duration && (
+                                  <span className="text-red-500 text-sm mt-1 block">
+                                    {editErrors.duration}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Price/month</Label>
-                              <Input
-                                type="number"
-                                className="col-span-3"
-                                value={editableCourse?.price || ""}
-                                onChange={(e) =>
-                                  setEditableCourse({
-                                    ...editableCourse!,
-                                    price: parseFloat(e.target.value),
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  type="number"
+                                  value={editableCourse?.price || ""}
+                                  onChange={(e) =>
+                                    setEditableCourse({
+                                      ...editableCourse!,
+                                      price: parseFloat(e.target.value),
+                                    })
+                                  }
+                                />
+                                {editErrors.price && (
+                                  <span className="text-red-500 text-sm mt-1 block">
+                                    {editErrors.price}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <SheetFooter>
@@ -292,6 +387,40 @@ export default function CoursePage() {
               ))}
             </TableBody>
           </Table>
+
+          <Sheet
+            open={isViewStudentsSheetOpen}
+            onOpenChange={setIsViewStudentsSheetOpen}
+          >
+            <SheetContent side="bottom" className="h-[80vh] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle className="text-2xl">
+                  Students Enrolled in Course {selectedCourseId}
+                </SheetTitle>
+              </SheetHeader>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone Number</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell>{student.id}</TableCell>
+                      <TableCell>{student.name}</TableCell>
+                      <TableCell>{student.email}</TableCell>
+                      <TableCell>{student.phone_number}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </SheetContent>
+          </Sheet>
+
           <div className="flex justify-center items-center gap-5 py-4">
             <Button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
@@ -318,7 +447,6 @@ export default function CoursePage() {
         <div className="p-5 text-center">Loading Courses Data...</div>
       )}
 
-      {/* Add Course Button */}
       <div className="fixed bottom-5 right-5">
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -333,57 +461,81 @@ export default function CoursePage() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Name</Label>
-                <Input
-                  className="col-span-3"
-                  value={newCourse.course_name || ""}
-                  onChange={(e) =>
-                    setNewCourse({
-                      ...newCourse,
-                      course_name: e.target.value,
-                    })
-                  }
-                />
+                <div className="col-span-3">
+                  <Input
+                    value={newCourse.course_name || ""}
+                    onChange={(e) =>
+                      setNewCourse({
+                        ...newCourse,
+                        course_name: e.target.value,
+                      })
+                    }
+                  />
+                  {errors.course_name && (
+                    <span className="text-red-500 text-sm mt-1 block">
+                      {errors.course_name}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Description</Label>
-                <Input
-                  className="col-span-3"
-                  value={newCourse.description || ""}
-                  onChange={(e) =>
-                    setNewCourse({
-                      ...newCourse,
-                      description: e.target.value,
-                    })
-                  }
-                />
+                <div className="col-span-3">
+                  <Input
+                    value={newCourse.description || ""}
+                    onChange={(e) =>
+                      setNewCourse({
+                        ...newCourse,
+                        description: e.target.value,
+                      })
+                    }
+                  />
+                  {errors.description && (
+                    <span className="text-red-500 text-sm mt-1 block">
+                      {errors.description}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Duration (hrs/week)</Label>
-                <Input
-                  type="number"
-                  className="col-span-3"
-                  value={newCourse.duration || ""}
-                  onChange={(e) =>
-                    setNewCourse({
-                      ...newCourse,
-                      duration: parseInt(e.target.value),
-                    })
-                  }
-                />
+                <div className="col-span-3">
+                  <Input
+                    type="number"
+                    value={newCourse.duration || ""}
+                    onChange={(e) =>
+                      setNewCourse({
+                        ...newCourse,
+                        duration: parseInt(e.target.value),
+                      })
+                    }
+                  />
+                  {errors.duration && (
+                    <span className="text-red-500 text-sm mt-1 block">
+                      {errors.duration}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Price/month</Label>
-                <Input
-                  type="number"
-                  className="col-span-3"
-                  value={newCourse.price || ""}
-                  onChange={(e) =>
-                    setNewCourse({
-                      ...newCourse,
-                      price: parseFloat(e.target.value),
-                    })
-                  }
-                />
+                <div className="col-span-3">
+                  <Input
+                    type="number"
+                    value={newCourse.price || ""}
+                    onChange={(e) =>
+                      setNewCourse({
+                        ...newCourse,
+                        price: parseFloat(e.target.value),
+                      })
+                    }
+                  />
+                  {errors.price && (
+                    <span className="text-red-500 text-sm mt-1 block">
+                      {errors.price}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <DialogFooter>

@@ -1,8 +1,8 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { ReactNode } from "react";
 import { getSession } from "../lib/session";
 import { redirect } from "next/navigation";
-import AppSidebarAdmin from "../components/AppSidebarAdmin";
+import AppSidebarAdmin from "../components/AppSidebar/AppSidebarAdmin";
 
 export default async function StudentLayout({
   children,

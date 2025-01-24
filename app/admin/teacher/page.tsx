@@ -14,8 +14,7 @@ import {
   getTeachers,
   getTeachersByName,
   updateTeacher,
-} from "../actions/teacher/actions";
-import { resetPassword } from "../actions/user/actions";
+} from "../controllers/teacher.controller";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
 import { Search, EllipsisVertical } from "lucide-react";
@@ -49,6 +48,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Teacher } from "@/app/lib/interfaces";
+import { resetPassword } from "../controllers/user.controller";
+import { z } from "zod";
+import { teacherSchema } from "@/app/lib/zod";
 
 export default function TeacherPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -61,6 +63,7 @@ export default function TeacherPage() {
     null
   );
   const [newPassword, setNewPassword] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({}); // Track validation errors
   const pageSize = 10;
 
   useEffect(() => {
@@ -115,12 +118,46 @@ export default function TeacherPage() {
 
   async function handleUpdate() {
     if (editableTeacher) {
-      await updateTeacher(editableTeacher);
-      setRefresh((prev) => !prev);
-      toast({
-        className: "bg-green-900",
-        description: `${editableTeacher.name} updated successfully`,
-      });
+      try {
+        // Validate the editableTeacher against the schema
+        const validatedData = teacherSchema.parse(editableTeacher);
+
+        // Add the id to the validated data
+        const teacherDataWithId = {
+          ...validatedData,
+          id: editableTeacher.id, // Include the id from editableTeacher
+        };
+
+        // If validation passes, proceed with the update
+        await updateTeacher(teacherDataWithId);
+        setRefresh((prev) => !prev);
+        setErrors({}); // Clear errors on successful validation
+        toast({
+          className: "bg-green-900",
+          description: `${validatedData.name} updated successfully`,
+        });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          // Handle validation errors
+          const fieldErrors: Record<string, string> = {};
+          error.errors.forEach((err) => {
+            if (err.path) {
+              fieldErrors[err.path[0]] = err.message;
+            }
+          });
+          setErrors(fieldErrors); // Set errors for each field
+          toast({
+            variant: "destructive",
+            description: "Some data not valid.",
+          });
+        } else {
+          // Handle other errors
+          toast({
+            variant: "destructive",
+            description: "Failed to update teacher",
+          });
+        }
+      }
     }
   }
 
@@ -207,60 +244,86 @@ export default function TeacherPage() {
                         </SheetTrigger>
                         <SheetContent>
                           <SheetHeader>
-                            <SheetTitle>Edit Teacher</SheetTitle>
+                            <SheetTitle className="text-2xl">
+                              Edit Teacher
+                            </SheetTitle>
                           </SheetHeader>
                           <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Name</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableTeacher?.name || ""}
-                                onChange={(e) =>
-                                  setEditableTeacher({
-                                    ...editableTeacher!,
-                                    name: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableTeacher?.name || ""}
+                                  onChange={(e) =>
+                                    setEditableTeacher({
+                                      ...editableTeacher!,
+                                      name: e.target.value,
+                                    })
+                                  }
+                                />
+                                {errors.name && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.name}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Address</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableTeacher?.address || ""}
-                                onChange={(e) =>
-                                  setEditableTeacher({
-                                    ...editableTeacher!,
-                                    address: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableTeacher?.address || ""}
+                                  onChange={(e) =>
+                                    setEditableTeacher({
+                                      ...editableTeacher!,
+                                      address: e.target.value,
+                                    })
+                                  }
+                                />
+                                {errors.address && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.address}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Email</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableTeacher?.email || ""}
-                                onChange={(e) =>
-                                  setEditableTeacher({
-                                    ...editableTeacher!,
-                                    email: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableTeacher?.email || ""}
+                                  onChange={(e) =>
+                                    setEditableTeacher({
+                                      ...editableTeacher!,
+                                      email: e.target.value,
+                                    })
+                                  }
+                                />
+                                {errors.email && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.email}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Phone Number</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableTeacher?.phone_number || ""}
-                                onChange={(e) =>
-                                  setEditableTeacher({
-                                    ...editableTeacher!,
-                                    phone_number: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableTeacher?.phone_number || ""}
+                                  onChange={(e) =>
+                                    setEditableTeacher({
+                                      ...editableTeacher!,
+                                      phone_number: e.target.value,
+                                    })
+                                  }
+                                />
+                                {errors.phone_number && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.phone_number}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <SheetFooter>

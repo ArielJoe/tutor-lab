@@ -2,9 +2,9 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Navbar from "../../components/Navbar";
-import { getStudents } from "../actions/student/actions";
+import { getStudents } from "../controllers/student.controller";
 import { useEffect, useState } from "react";
-import { getTeachers } from "../actions/teacher/actions";
+import { getTeachers } from "../controllers/teacher.controller";
 import {
   Card,
   CardContent,
@@ -29,7 +29,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Log, Student, Teacher } from "@/app/lib/interfaces";
-import { getLogs } from "../actions/log/actions"; // Import the Prisma action
+import { getLogs } from "../controllers/log.controller"; // Import the Prisma action
 import {
   Table,
   TableBody,
@@ -37,10 +37,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"; // shadcn/ui table components
-import { Button } from "@/components/ui/button"; // shadcn/ui button component
-import { Input } from "@/components/ui/input"; // shadcn/ui input component
-import { getInvoices } from "../actions/invoice/actions";
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getInvoices } from "../controllers/invoice.controller";
 
 export default function Dashboard() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -57,7 +57,7 @@ export default function Dashboard() {
       const studentData = await getStudents();
       const teacherData = await getTeachers();
       const logData = await getLogs();
-      const invoiceData = await getInvoices(); // Fetch invoices
+      const invoiceData = await getInvoices();
       setStudents(studentData);
       setTeachers(teacherData);
       setLogs(logData);

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getTeacherIdByEmail } from "../actions/teacher/actions";
-import { getSchedulesByTeacherId } from "../actions/schedule/actions";
-import { getStudyContracts } from "../actions/study_contract/actions";
-import { getStudentsByIds } from "../actions/student/actions";
+import { getTeacherIdByEmail } from "../controllers/teacher.controller";
+import { getSchedulesByTeacherId } from "../controllers/schedule.controller";
+import { getStudyContracts } from "../controllers/study_contract.controller";
+import { getStudentsByIds } from "../controllers/student.controller";
 import { Session } from "next-auth";
 import { getSession } from "@/app/lib/session";
 import { numberToDay } from "@/app/lib/numToDay";
@@ -20,14 +20,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button"; // Import Button component
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"; // Import Dialog components
+} from "@/components/ui/dialog";
 
 export default function TeacherScheduleTable() {
   const [schedules, setSchedules] = useState<any[]>([]);

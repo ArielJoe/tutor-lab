@@ -14,8 +14,7 @@ import {
   getStudents,
   getStudentsByName,
   updateStudent,
-} from "../actions/student/actions";
-import { resetPassword } from "../actions/user/actions";
+} from "../controllers/student.controller";
 import Navbar from "../../components/Navbar";
 import { Input } from "@/components/ui/input";
 import { EllipsisVertical, Search } from "lucide-react";
@@ -51,6 +50,9 @@ import {
 import { AddCourse } from "./add_course";
 import ShowStudentContracts from "./study_contract";
 import { Student } from "@/app/lib/interfaces";
+import { resetPassword } from "../controllers/user.controller";
+import { z } from "zod";
+import { studentSchema } from "@/app/lib/zod";
 
 export default function StudentPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -63,6 +65,7 @@ export default function StudentPage() {
     null
   );
   const [newPassword, setNewPassword] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({}); // Track validation errors
   const pageSize = 10;
 
   useEffect(() => {
@@ -117,12 +120,46 @@ export default function StudentPage() {
 
   async function handleUpdate() {
     if (editableStudent) {
-      await updateStudent(editableStudent);
-      setRefresh((prev) => !prev);
-      toast({
-        className: "bg-green-900",
-        description: `${editableStudent.name} updated successfully`,
-      });
+      try {
+        // Validate the editableStudent against the schema
+        const validatedData = studentSchema.parse(editableStudent);
+
+        // Add the id to the validated data
+        const studentDataWithId = {
+          ...validatedData,
+          id: editableStudent.id, // Include the id from editableStudent
+        };
+
+        // If validation passes, proceed with the update
+        await updateStudent(studentDataWithId);
+        setRefresh((prev) => !prev);
+        setErrors({}); // Clear errors on successful validation
+        toast({
+          className: "bg-green-900",
+          description: `${validatedData.name} updated successfully`,
+        });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          // Handle validation errors
+          const fieldErrors: Record<string, string> = {};
+          error.errors.forEach((err) => {
+            if (err.path) {
+              fieldErrors[err.path[0]] = err.message;
+            }
+          });
+          setErrors(fieldErrors); // Set errors for each field
+          toast({
+            variant: "destructive",
+            description: "Some data not valid.",
+          });
+        } else {
+          // Handle other errors
+          toast({
+            variant: "destructive",
+            description: "Failed to update student",
+          });
+        }
+      }
     }
   }
 
@@ -217,81 +254,136 @@ export default function StudentPage() {
                         </SheetTrigger>
                         <SheetContent>
                           <SheetHeader>
-                            <SheetTitle>Edit Student</SheetTitle>
+                            <SheetTitle className="text-2xl">
+                              Edit Student
+                            </SheetTitle>
                           </SheetHeader>
                           <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Name</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableStudent?.name || ""}
-                                onChange={(e) =>
-                                  setEditableStudent({
-                                    ...editableStudent!,
-                                    name: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableStudent?.name || ""}
+                                  onChange={(e) =>
+                                    setEditableStudent({
+                                      ...editableStudent!,
+                                      name: e.target.value,
+                                    })
+                                  }
+                                />
+                                {errors.name && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.name}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Birth Date</Label>
-                              <Input
-                                type="date"
-                                className="col-span-3"
-                                value={
-                                  editableStudent?.birth_date
-                                    ? editableStudent.birth_date
-                                        .toISOString()
-                                        .split("T")[0]
-                                    : ""
-                                }
-                                onChange={(e) => {
-                                  const selectedDate = e.target.value;
-                                  setEditableStudent({
-                                    ...editableStudent!,
-                                    birth_date: new Date(selectedDate),
-                                  });
-                                }}
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  type="date"
+                                  value={
+                                    editableStudent?.birth_date
+                                      ? editableStudent.birth_date
+                                          .toISOString()
+                                          .split("T")[0]
+                                      : ""
+                                  }
+                                  onChange={(e) => {
+                                    const selectedDate = e.target.value;
+                                    setEditableStudent({
+                                      ...editableStudent!,
+                                      birth_date: new Date(selectedDate),
+                                    });
+                                  }}
+                                />
+                                {errors.birth_date && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.birth_date}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Address</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableStudent?.address || ""}
-                                onChange={(e) =>
-                                  setEditableStudent({
-                                    ...editableStudent!,
-                                    address: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableStudent?.address || ""}
+                                  onChange={(e) =>
+                                    setEditableStudent({
+                                      ...editableStudent!,
+                                      address: e.target.value,
+                                    })
+                                  }
+                                />
+                                {errors.address && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.address}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Email</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableStudent?.email || ""}
-                                onChange={(e) =>
-                                  setEditableStudent({
-                                    ...editableStudent!,
-                                    email: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableStudent?.email || ""}
+                                  onChange={(e) =>
+                                    setEditableStudent({
+                                      ...editableStudent!,
+                                      email: e.target.value,
+                                    })
+                                  }
+                                />
+                                {errors.email && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.email}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label className="text-right">Phone Number</Label>
-                              <Input
-                                className="col-span-3"
-                                value={editableStudent?.phone_number || ""}
-                                onChange={(e) =>
-                                  setEditableStudent({
-                                    ...editableStudent!,
-                                    phone_number: e.target.value,
-                                  })
-                                }
-                              />
+                              <div className="col-span-3">
+                                <Input
+                                  value={editableStudent?.phone_number || ""}
+                                  onChange={(e) =>
+                                    setEditableStudent({
+                                      ...editableStudent!,
+                                      phone_number: e.target.value,
+                                    })
+                                  }
+                                />
+                                {errors.phone_number && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.phone_number}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label className="text-right">
+                                Parents Phone Number
+                              </Label>
+                              <div className="col-span-3">
+                                <Input
+                                  value={
+                                    editableStudent?.parents_phone_number || ""
+                                  }
+                                  onChange={(e) =>
+                                    setEditableStudent({
+                                      ...editableStudent!,
+                                      parents_phone_number: e.target.value,
+                                    })
+                                  }
+                                />
+                                {errors.parents_phone_number && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.parents_phone_number}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <SheetFooter>

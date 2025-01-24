@@ -7,7 +7,7 @@ import {
   confirmPayment,
   cancelPayment,
   deleteInvoice,
-} from "../actions/invoice/actions";
+} from "../controllers/invoice.controller";
 import {
   Table,
   TableBody,
@@ -265,13 +265,15 @@ export default function Invoice() {
       <Navbar title="Invoice" />
       <div className="p-4">
         {/* Date Range Filter */}
-        <div className="flex gap-4 mb-4">
+        <div className="flex items-center gap-4 mb-4">
+          Filter date:
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             className="p-2 border rounded"
           />
+          -
           <input
             type="date"
             value={endDate}
@@ -306,7 +308,7 @@ export default function Invoice() {
                     <TableCell>
                       {new Date(invoice.due_date).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>Rp{formatRevenue(invoice.amount)}</TableCell>
+                    <TableCell>Rp{formatRevenue(invoice.amount)},00</TableCell>
                     <TableCell>{invoice.method}</TableCell>
                     <TableCell>
                       <span
