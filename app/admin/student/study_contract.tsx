@@ -119,16 +119,23 @@ export default function ShowStudentContracts({
         0
       );
 
-      // Create invoice with the total amount
-      await createInvoiceFromStudyContract(
-        studentId,
-        totalAmount,
-        paymentMethod
-      );
-      toast({
-        className: "bg-green-900",
-        description: "Invoice created successfully!",
-      });
+      if (totalAmount > 0) {
+        // Create invoice with the total amount
+        await createInvoiceFromStudyContract(
+          studentId,
+          totalAmount,
+          paymentMethod
+        );
+        toast({
+          className: "bg-green-900",
+          description: "Invoice created successfully!",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          description: "Can't create invoice without study contract!",
+        });
+      }
     } catch (error) {
       console.error("Failed to create invoice:", error);
       toast({

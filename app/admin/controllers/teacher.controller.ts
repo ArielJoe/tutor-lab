@@ -106,17 +106,38 @@ export async function updateTeacher(data: Teacher) {
  */
 export async function deleteTeacherById(id: number) {
   try {
-    // Langkah 1: Menghapus kontrak studi yang terkait dengan guru
+    // Langkah 1: Mengambil email guru sebelum menghapus
+    const teacher = await prisma.teacher.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        email: true,
+      },
+    });
+
+    if (!teacher) {
+      throw new Error("Teacher not found");
+    }
+
+    // Langkah 2: Menghapus kontrak studi yang terkait dengan guru
     await prisma.studyContract.deleteMany({
       where: {
         Schedule_Teacher_id: id,
       },
     });
 
-    // Langkah 2: Menghapus guru
+    // Langkah 3: Menghapus guru
     await prisma.teacher.delete({
       where: {
         id: id,
+      },
+    });
+
+    // Langkah 4: Menghapus user yang terkait menggunakan email
+    await prisma.user.deleteMany({
+      where: {
+        email: teacher.email,
       },
     });
   } catch (error) {
